@@ -1,0 +1,476 @@
+/* resumeTwo.css - Classic Resume Template */
+.resume-two-container {
+  max-width: 210mm;
+  min-height: 297mm;
+  margin: 0 auto;
+  padding: 40px 50px;
+  background-color: white;
+  font-family: 'Times New Roman', 'Georgia', serif;
+  color: #333;
+  line-height: 1.5;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+  position: relative;
+}
+
+/* Header Styles */
+.resume-two-header {
+  border-bottom: 3px solid #8B4513;
+  padding-bottom: 20px;
+  margin-bottom: 30px;
+}
+
+.header-content {
+  text-align: left;
+}
+
+.resume-two-name {
+  font-size: 2.8rem;
+  font-weight: bold;
+  color: #2c3e50;
+  margin-bottom: 5px;
+  letter-spacing: 1px;
+  font-family: 'Georgia', serif;
+}
+
+.resume-two-title {
+  font-size: 1.5rem;
+  color: #8B4513;
+  margin-bottom: 20px;
+  font-style: italic;
+  font-weight: normal;
+}
+
+.resume-two-contact-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 25px;
+  font-size: 1.05rem;
+}
+
+.contact-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.contact-label {
+  font-weight: bold;
+  color: #8B4513;
+}
+
+/* Main Content */
+.resume-two-main {
+  margin-bottom: 30px;
+}
+
+.resume-two-section {
+  margin-bottom: 25px;
+  page-break-inside: avoid;
+}
+
+.section-title {
+  font-size: 1.4rem;
+  font-weight: bold;
+  color: #2c3e50;
+  margin-bottom: 15px;
+  padding-bottom: 5px;
+  border-bottom: 2px solid #e0e0e0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.section-icon {
+  font-size: 1.2rem;
+}
+
+.section-content {
+  padding-left: 10px;
+}
+
+/* Experience Styles */
+.experience-item {
+  margin-bottom: 20px;
+  page-break-inside: avoid;
+}
+
+.experience-header {
+  margin-bottom: 8px;
+}
+
+.experience-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 3px;
+}
+
+.job-title {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #2c3e50;
+  flex: 1;
+}
+
+.experience-date {
+  font-size: 1rem;
+  color: #8B4513;
+  font-weight: 500;
+}
+
+.experience-subtitle-row {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.company-name {
+  font-size: 1.1rem;
+  color: #8B4513;
+  font-weight: 500;
+}
+
+.company-location {
+  font-size: 0.95rem;
+  color: #666;
+  font-style: italic;
+}
+
+.experience-description {
+  margin-top: 8px;
+  padding-left: 15px;
+}
+
+.experience-description p {
+  margin: 0;
+  color: #444;
+  font-size: 1.05rem;
+  line-height: 1.6;
+}
+
+/* Education Styles */
+.education-item {
+  margin-bottom: 20px;
+}
+
+.education-header {
+  margin-bottom: 8px;
+}
+
+.education-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 3px;
+}
+
+.degree-name {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #2c3e50;
+  flex: 1;
+}
+
+.education-date {
+  font-size: 1rem;
+  color: #8B4513;
+  font-weight: 500;
+}
+
+.education-subtitle-row {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.institution-name {
+  font-size: 1.1rem;
+  color: #8B4513;
+  font-weight: 500;
+}
+
+.institution-location {
+  font-size: 0.95rem;
+  color: #666;
+  font-style: italic;
+}
+
+.education-description {
+  margin-top: 8px;
+  padding-left: 15px;
+}
+
+.education-description p {
+  margin: 0;
+  color: #444;
+  font-size: 1.05rem;
+}
+
+/* Skills Styles */
+.skills-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 15px;
+}
+
+.skill-item {
+  background-color: #f8f8f8;
+  padding: 10px 15px;
+  border-radius: 4px;
+  border-left: 4px solid #8B4513;
+  font-size: 1.05rem;
+  color: #333;
+  transition: all 0.3s ease;
+}
+
+.skill-item:hover {
+  background-color: #f0f0f0;
+  transform: translateY(-2px);
+}
+
+/* Projects Styles */
+.project-item {
+  margin-bottom: 20px;
+  padding: 15px;
+  background-color: #f9f9f9;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+}
+
+.project-header {
+  margin-bottom: 10px;
+}
+
+.project-name {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #2c3e50;
+  margin: 0;
+}
+
+.project-description {
+  margin: 10px 0;
+  color: #444;
+  font-size: 1.05rem;
+  line-height: 1.6;
+}
+
+.project-technologies {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.tech-label {
+  font-weight: bold;
+  color: #8B4513;
+  font-size: 1rem;
+}
+
+.tech-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tech-tag {
+  background-color: #e8e8e8;
+  padding: 4px 12px;
+  border-radius: 15px;
+  font-size: 0.9rem;
+  color: #555;
+  border: 1px solid #ddd;
+}
+
+/* Two Column Section */
+.two-column-section {
+  display: flex;
+  gap: 40px;
+  margin-top: 20px;
+}
+
+.half-width {
+  flex: 1;
+}
+
+/* Certifications & Languages */
+.certification-item {
+  margin-bottom: 12px;
+  padding-left: 15px;
+  position: relative;
+}
+
+.certification-item::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: #8B4513;
+  font-weight: bold;
+}
+
+.certification-name {
+  font-size: 1.05rem;
+  color: #333;
+}
+
+.language-item {
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.language-name {
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: #2c3e50;
+}
+
+.language-proficiency {
+  font-size: 0.95rem;
+  color: #666;
+  font-style: italic;
+}
+
+/* Summary Text */
+.summary-text {
+  font-size: 1.1rem;
+  color: #444;
+  line-height: 1.6;
+  text-align: justify;
+}
+
+/* Footer Styles */
+.resume-two-footer {
+  border-top: 2px solid #e0e0e0;
+  padding-top: 20px;
+  margin-top: 30px;
+}
+
+.footer-content {
+  text-align: center;
+}
+
+.footer-text {
+  color: #666;
+  font-size: 1rem;
+  font-style: italic;
+}
+
+/* Preview Mode Styles for ResumeBuilder */
+.resume-two-preview-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 30px;
+  background-color: white;
+  font-family: 'Times New Roman', 'Georgia', serif;
+  color: #333;
+  line-height: 1.5;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.resume-two-preview-container .resume-two-header {
+  padding-bottom: 15px;
+  margin-bottom: 20px;
+}
+
+.resume-two-preview-container .resume-two-name {
+  font-size: 2.2rem;
+}
+
+.resume-two-preview-container .resume-two-title {
+  font-size: 1.3rem;
+}
+
+.resume-two-preview-container .section-title {
+  font-size: 1.2rem;
+}
+
+.resume-two-preview-container .job-title,
+.resume-two-preview-container .degree-name {
+  font-size: 1.1rem;
+}
+
+.resume-two-preview-container .skills-grid {
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.resume-two-preview-container .two-column-section {
+  gap: 20px;
+}
+
+/* Print Styles */
+@media print {
+  .resume-two-container {
+    box-shadow: none;
+    padding: 20mm;
+    margin: 0;
+    max-width: 100%;
+    min-height: auto;
+  }
+  
+  .resume-two-section {
+    page-break-inside: avoid;
+  }
+  
+  .experience-item, .education-item {
+    page-break-inside: avoid;
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .resume-two-container {
+    padding: 20px;
+  }
+  
+  .resume-two-name {
+    font-size: 2.2rem;
+  }
+  
+  .resume-two-contact-info {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .two-column-section {
+    flex-direction: column;
+    gap: 20px;
+  }
+  
+  .skills-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  }
+  
+  .experience-title-row,
+  .education-title-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+  
+  .experience-date,
+  .education-date {
+    align-self: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .resume-two-container {
+    padding: 15px;
+  }
+  
+  .resume-two-name {
+    font-size: 1.8rem;
+  }
+  
+  .section-title {
+    font-size: 1.2rem;
+  }
+  
+  .skills-grid {
+    grid-template-columns: 1fr;
+  }
+}
