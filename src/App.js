@@ -12,6 +12,7 @@ import ProfilePage from "./pages/ProfilePage";
 import Dashboard from "./pages/Dashboard";
 import CareerPaths from "./pages/CareerPaths";
 import ResumeBuilder from "./pages/ResumeBuilder";
+import ApplyPage from "./pages/ApplyPage"; // Import the ApplyPage component
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminDashboard from "./pages/Admin/dashboard/AdminDashboard";
 import CompanyDashboard from './pages/Company/CompanyDashboard';
@@ -92,6 +93,11 @@ function App() {
             </ProtectedRoute>
           } />
           <Route path="/career-paths" element={<CareerPaths />} />
+          <Route path="/apply/:internshipId" element={
+            <ProtectedRoute>
+              <ApplyPage />
+            </ProtectedRoute>
+          } />
           <Route path="/resume" element={<ResumeBuilder />} />
           <Route path="/admin/dashboard" element={
             <ProtectedRoute>
