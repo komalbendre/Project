@@ -12,6 +12,7 @@ import resumeRoutes from './routes/resumeRoutes.js';
 import internshipRoutes from "./routes/internshipRoutes.js";
 import careerPathRoutes from "./routes/careerPathRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
+import applicationRoutes from "./routes/applicationRoutes.js";
 
 dotenv.config();
 
@@ -47,6 +48,7 @@ app.use('/api/resume', resumeRoutes);
 app.use("/api/internships", internshipRoutes);
 app.use("/api/career-paths", careerPathRoutes);
 app.use("/api/ai", aiRoutes);
+app.use("/api/applications", applicationRoutes);
 
 // Health check
 app.get("/health", (req, res) => {
@@ -67,7 +69,8 @@ app.use((req, res) => {
   });
 });
 
-const PORT = 5001;
+const PORT = process.env.PORT || 5000;
+
 
 app.listen(PORT, () => {
   console.log(`Backend running at: http://localhost:${PORT}`);

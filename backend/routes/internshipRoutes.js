@@ -24,7 +24,7 @@
 //     res.status(201).json(internship);
 //   } catch (error) {
 //     res.status(500).json({ message: "Server error", error: error.message });
-//   }
+//   }k
 // });
 
 // export default router;

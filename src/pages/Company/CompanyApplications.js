@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import axios from "axios";
 
 const CompanyApplications = () => {
@@ -7,15 +7,27 @@ const CompanyApplications = () => {
     const [filteredApplications, setFilteredApplications] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedApplications, setSelectedApplications] = useState([]);
+    const [companyInternships, setCompanyInternships] = useState([]);
+    const [stats, setStats] = useState({
+        totalApplications: 0,
+        pending: 0,
+        reviewed: 0,
+        shortlisted: 0,
+        accepted: 0,
+        rejected: 0,
+        withdrawn: 0,
+        interviews: 0
+    });
     const [filters, setFilters] = useState({
         status: 'all',
-        dateRange: 'all',
-        position: 'all',
-        search: ''
+        internshipId: 'all',
+        search: '',
+        dateRange: 'all'
     });
+    const [updatingStatus, setUpdatingStatus] = useState(false);
+    
     const navigate = useNavigate();
     const location = useLocation();
-
     const token = localStorage.getItem("token");
 
     useEffect(() => {
@@ -24,14 +36,19 @@ const CompanyApplications = () => {
             return;
         }
 
-        fetchApplications();
+        fetchCompanyData();
     }, [token, navigate]);
 
     useEffect(() => {
         const params = new URLSearchParams(location.search);
         const statusFilter = params.get('filter');
+        const internshipFilter = params.get('internship');
+        
         if (statusFilter) {
             setFilters(prev => ({ ...prev, status: statusFilter }));
+        }
+        if (internshipFilter) {
+            setFilters(prev => ({ ...prev, internshipId: internshipFilter }));
         }
     }, [location]);
 
@@ -39,127 +56,108 @@ const CompanyApplications = () => {
         filterApplications();
     }, [applications, filters]);
 
-    const fetchApplications = async () => {
+    const fetchCompanyData = async () => {
         try {
             setLoading(true);
-            // In real app, fetch from API
-            const mockApplications = generateMockApplications();
-            setApplications(mockApplications);
+            
+            // Fetch company applications
+            await fetchApplications();
+            
+            // Fetch company internships for filter dropdown
+            await fetchCompanyInternships();
+            
         } catch (error) {
-            console.error("Error fetching applications:", error);
-            setApplications([]);
+            console.error("Error fetching company data:", error);
         } finally {
             setLoading(false);
         }
     };
 
-    const generateMockApplications = () => {
-        return [
-            { 
-                id: 1, 
-                candidate: {
-                    name: 'John Doe',
-                    email: 'john@example.com',
-                    phone: '+1 (555) 123-4567',
-                    resume: 'john_doe_resume.pdf',
-                    profilePic: null
-                },
-                position: 'Frontend Developer Intern',
-                department: 'Engineering',
-                appliedDate: '2024-03-15',
-                status: 'Pending',
-                stage: 'Application Review',
-                score: 85,
-                skills: ['React', 'JavaScript', 'HTML/CSS'],
-                experience: '1 year',
-                education: 'B.S. Computer Science',
-                notes: 'Strong portfolio, good communication skills',
-                lastContact: '2024-03-15'
-            },
-            { 
-                id: 2, 
-                candidate: {
-                    name: 'Jane Smith',
-                    email: 'jane@example.com',
-                    phone: '+1 (555) 987-6543',
-                    resume: 'jane_smith_resume.pdf',
-                    profilePic: null
-                },
-                position: 'Data Analyst Intern',
-                department: 'Analytics',
-                appliedDate: '2024-03-14',
-                status: 'Reviewed',
-                stage: 'Technical Assessment',
-                score: 92,
-                skills: ['Python', 'SQL', 'Tableau'],
-                experience: '2 years',
-                education: 'M.S. Data Science',
-                notes: 'Excellent analytical skills, passed initial screening',
-                lastContact: '2024-03-14'
-            },
-            { 
-                id: 3, 
-                candidate: {
-                    name: 'Bob Johnson',
-                    email: 'bob@example.com',
-                    phone: '+1 (555) 456-7890',
-                    resume: 'bob_johnson_resume.pdf',
-                    profilePic: null
-                },
-                position: 'Marketing Intern',
-                department: 'Marketing',
-                appliedDate: '2024-03-13',
-                status: 'Interview Scheduled',
-                stage: 'First Interview',
-                score: 78,
-                skills: ['SEO', 'Content Marketing', 'Social Media'],
-                experience: '6 months',
-                education: 'B.A. Marketing',
-                notes: 'Interview scheduled for tomorrow',
-                lastContact: '2024-03-13'
-            },
-            { 
-                id: 4, 
-                candidate: {
-                    name: 'Alice Brown',
-                    email: 'alice@example.com',
-                    phone: '+1 (555) 789-0123',
-                    resume: 'alice_brown_resume.pdf',
-                    profilePic: null
-                },
-                position: 'UX Designer Intern',
-                department: 'Design',
-                appliedDate: '2024-03-12',
-                status: 'Rejected',
-                stage: 'Final Review',
-                score: 65,
-                skills: ['Figma', 'UI/UX', 'Prototyping'],
-                experience: '1 year',
-                education: 'B.Des. Interaction Design',
-                notes: 'Portfolio needs improvement',
-                lastContact: '2024-03-12'
+    const fetchApplications = async () => {
+        try {
+            // Build query params
+            const params = new URLSearchParams();
+            
+            if (filters.status !== 'all') {
+                params.append('status', filters.status);
             }
-        ];
+            
+            if (filters.internshipId !== 'all') {
+                params.append('internshipId', filters.internshipId);
+            }
+            
+            if (filters.search) {
+                params.append('search', filters.search);
+            }
+            
+            const response = await axios.get(
+                `http://localhost:5000/api/applications/company?${params.toString()}`,
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            if (response.data.success) {
+                setApplications(response.data.data);
+                
+                // Update stats from response
+                if (response.data.stats) {
+                    setStats({
+                        totalApplications: response.data.total || response.data.data.length,
+                        pending: response.data.stats.pending || 0,
+                        reviewed: response.data.stats.reviewed || 0,
+                        shortlisted: response.data.stats.shortlisted || 0,
+                        accepted: response.data.stats.accepted || 0,
+                        rejected: response.data.stats.rejected || 0,
+                        withdrawn: response.data.stats.withdrawn || 0,
+                        interviews: response.data.data.filter(app => app.interview?.scheduled).length || 0
+                    });
+                }
+            }
+        } catch (error) {
+            console.error("Error fetching applications:", error);
+            setApplications([]);
+        }
+    };
+
+    const fetchCompanyInternships = async () => {
+        try {
+            const response = await axios.get(
+                'http://localhost:5000/api/companies/internships',
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            if (response.data.success) {
+                setCompanyInternships(response.data.data);
+            }
+        } catch (error) {
+            console.error("Error fetching internships:", error);
+            setCompanyInternships([]);
+        }
     };
 
     const filterApplications = () => {
         let filtered = [...applications];
 
-        if (filters.status !== 'all') {
-            filtered = filtered.filter(app => app.status.toLowerCase().includes(filters.status));
-        }
-
+        // Status filter is now handled by API, but we still need to apply search locally
         if (filters.search) {
             const searchLower = filters.search.toLowerCase();
             filtered = filtered.filter(app => 
-                app.candidate.name.toLowerCase().includes(searchLower) ||
-                app.position.toLowerCase().includes(searchLower) ||
-                app.department.toLowerCase().includes(searchLower)
+                app.fullName?.toLowerCase().includes(searchLower) ||
+                app.email?.toLowerCase().includes(searchLower) ||
+                app.internship?.title?.toLowerCase().includes(searchLower) ||
+                app.skills?.some(skill => skill.toLowerCase().includes(searchLower))
             );
         }
 
-        if (filters.position !== 'all') {
-            filtered = filtered.filter(app => app.position === filters.position);
+        // Apply date range filter locally
+        if (filters.dateRange !== 'all') {
+            const now = new Date();
+            const daysAgo = parseInt(filters.dateRange);
+            const cutoffDate = new Date();
+            cutoffDate.setDate(now.getDate() - daysAgo);
+            
+            filtered = filtered.filter(app => 
+                new Date(app.appliedDate) >= cutoffDate
+            );
         }
 
         setFilteredApplications(filtered);
@@ -167,41 +165,118 @@ const CompanyApplications = () => {
 
     const handleStatusChange = async (applicationId, newStatus) => {
         try {
-            setApplications(prev => prev.map(app => 
-                app.id === applicationId ? { ...app, status: newStatus } : app
-            ));
+            setUpdatingStatus(true);
+            
+            const response = await axios.patch(
+                `http://localhost:5000/api/applications/${applicationId}/status`,
+                { status: newStatus },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            if (response.data.success) {
+                // Update local state
+                setApplications(prev => prev.map(app => 
+                    app._id === applicationId ? { ...app, status: newStatus } : app
+                ));
+                
+                // Refresh stats
+                fetchApplications();
+            }
         } catch (error) {
             console.error("Error updating status:", error);
+            alert(error.response?.data?.message || "Failed to update application status");
+        } finally {
+            setUpdatingStatus(false);
         }
     };
 
-    const handleBulkAction = (action) => {
+    const handleAddNote = async (applicationId, note) => {
+        if (!note.trim()) return;
+        
+        try {
+            const response = await axios.post(
+                `http://localhost:5000/api/applications/${applicationId}/notes`,
+                { note },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            if (response.data.success) {
+                // Refresh applications to show new note
+                fetchApplications();
+                alert("Note added successfully");
+            }
+        } catch (error) {
+            console.error("Error adding note:", error);
+            alert(error.response?.data?.message || "Failed to add note");
+        }
+    };
+
+    const handleBulkAction = async (action) => {
         if (selectedApplications.length === 0) {
             alert("Please select applications first");
             return;
         }
 
-        switch(action) {
-            case 'shortlist':
-                selectedApplications.forEach(id => handleStatusChange(id, 'Shortlisted'));
-                break;
-            case 'reject':
-                selectedApplications.forEach(id => handleStatusChange(id, 'Rejected'));
-                break;
-            case 'schedule':
-                alert(`Schedule interviews for ${selectedApplications.length} candidates`);
-                break;
-            case 'email':
-                alert(`Send email to ${selectedApplications.length} candidates`);
-                break;
+        if (!window.confirm(`Are you sure you want to ${action} ${selectedApplications.length} selected application(s)?`)) {
+            return;
         }
-        
-        setSelectedApplications([]);
+
+        try {
+            setUpdatingStatus(true);
+            
+            let newStatus;
+            switch(action) {
+                case 'shortlist':
+                    newStatus = 'shortlisted';
+                    break;
+                case 'reject':
+                    newStatus = 'rejected';
+                    break;
+                case 'review':
+                    newStatus = 'reviewed';
+                    break;
+                default:
+                    return;
+            }
+
+            // Update each selected application
+            await Promise.all(
+                selectedApplications.map(id => 
+                    axios.patch(
+                        `http://localhost:5000/api/applications/${id}/status`,
+                        { status: newStatus },
+                        { headers: { Authorization: `Bearer ${token}` } }
+                    )
+                )
+            );
+
+            // Refresh applications
+            await fetchApplications();
+            setSelectedApplications([]);
+            alert(`Successfully updated ${selectedApplications.length} application(s)`);
+            
+        } catch (error) {
+            console.error("Error in bulk action:", error);
+            alert(error.response?.data?.message || "Failed to perform bulk action");
+        } finally {
+            setUpdatingStatus(false);
+        }
+    };
+
+    const handleScheduleInterview = (application) => {
+        // Navigate to interview scheduling page or open modal
+        // You can implement a modal here or navigate to a dedicated page
+        alert(`Schedule interview for ${application.fullName}`);
+        // navigate(`/company/interviews/schedule?application=${application._id}`);
+    };
+
+    const handleViewApplication = (applicationId) => {
+        navigate(`/company/applications/${applicationId}`);
     };
 
     const handleSelectAll = (checked) => {
         if (checked) {
-            setSelectedApplications(filteredApplications.map(app => app.id));
+            setSelectedApplications(filteredApplications.map(app => app._id));
         } else {
             setSelectedApplications([]);
         }
@@ -216,16 +291,39 @@ const CompanyApplications = () => {
     };
 
     const getStatusColor = (status) => {
-        switch(status) {
-            case 'Pending': return '#f59e0b';
-            case 'Reviewed': return '#3b82f6';
-            case 'Shortlisted': return '#8b5cf6';
-            case 'Interview Scheduled': return '#ec4899';
-            case 'Offer Sent': return '#10b981';
-            case 'Rejected': return '#ef4444';
-            case 'Hired': return '#059669';
+        switch(status?.toLowerCase()) {
+            case 'pending': return '#f59e0b';
+            case 'reviewed': return '#3b82f6';
+            case 'shortlisted': return '#8b5cf6';
+            case 'accepted': return '#10b981';
+            case 'rejected': return '#ef4444';
+            case 'withdrawn': return '#6b7280';
             default: return '#6b7280';
         }
+    };
+
+    const getStatusBadgeStyle = (status) => {
+        const color = getStatusColor(status);
+        return {
+            ...styles.badge,
+            background: color + '20',
+            color: color
+        };
+    };
+
+    const formatDate = (dateString) => {
+        if (!dateString) return 'N/A';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+        });
+    };
+
+    const getInitials = (name) => {
+        if (!name) return '?';
+        return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
     };
 
     const styles = {
@@ -266,6 +364,7 @@ const CompanyApplications = () => {
             flexDirection: "column",
             gap: "0.5rem",
             minWidth: "200px",
+            flex: 1,
         },
         filterLabel: {
             fontSize: "0.875rem",
@@ -284,14 +383,14 @@ const CompanyApplications = () => {
             border: "1px solid #d1d5db",
             borderRadius: "6px",
             fontSize: "0.875rem",
-            flex: 1,
-            minWidth: "300px",
+            width: "100%",
         },
         bulkActions: {
             display: "flex",
             gap: "0.5rem",
             marginTop: "1rem",
             flexWrap: "wrap",
+            alignItems: "center",
         },
         actionButton: {
             padding: "0.5rem 1rem",
@@ -304,6 +403,7 @@ const CompanyApplications = () => {
             display: "flex",
             alignItems: "center",
             gap: "0.5rem",
+            transition: "all 0.2s ease",
         },
         primaryActionButton: {
             background: "#10b981",
@@ -350,7 +450,7 @@ const CompanyApplications = () => {
             alignItems: "center",
             justifyContent: "center",
             fontWeight: 600,
-            fontSize: "1rem",
+            fontSize: "0.875rem",
         },
         candidateDetails: {
             display: "flex",
@@ -370,6 +470,7 @@ const CompanyApplications = () => {
             fontSize: "0.75rem",
             fontWeight: 600,
             display: "inline-block",
+            textTransform: "capitalize",
         },
         scoreBadge: {
             padding: "0.25rem 0.5rem",
@@ -382,6 +483,7 @@ const CompanyApplications = () => {
         actionButtons: {
             display: "flex",
             gap: "0.5rem",
+            flexWrap: "wrap",
         },
         viewButton: {
             padding: "0.25rem 0.75rem",
@@ -391,6 +493,7 @@ const CompanyApplications = () => {
             borderRadius: "4px",
             fontSize: "0.75rem",
             cursor: "pointer",
+            transition: "all 0.2s ease",
         },
         scheduleButton: {
             padding: "0.25rem 0.75rem",
@@ -399,6 +502,15 @@ const CompanyApplications = () => {
             border: "none",
             borderRadius: "4px",
             fontSize: "0.75rem",
+            cursor: "pointer",
+            transition: "all 0.2s ease",
+        },
+        statusSelect: {
+            padding: "0.25rem 0.5rem",
+            border: "1px solid #d1d5db",
+            borderRadius: "4px",
+            fontSize: "0.75rem",
+            background: "white",
             cursor: "pointer",
         },
         loadingContainer: {
@@ -426,10 +538,10 @@ const CompanyApplications = () => {
             cursor: "pointer",
         },
         statsRow: {
-            display: "flex",
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
             gap: "1rem",
             marginBottom: "1.5rem",
-            flexWrap: "wrap",
         },
         statCard: {
             background: "white",
@@ -439,8 +551,6 @@ const CompanyApplications = () => {
             display: "flex",
             alignItems: "center",
             gap: "1rem",
-            flex: 1,
-            minWidth: "200px",
         },
         statIcon: {
             width: "40px",
@@ -463,6 +573,19 @@ const CompanyApplications = () => {
             fontSize: "0.875rem",
             color: "#6b7280",
         },
+        skillsContainer: {
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "0.25rem",
+            marginTop: "0.25rem",
+        },
+        skillTag: {
+            padding: "0.125rem 0.5rem",
+            background: "#f3f4f6",
+            borderRadius: "12px",
+            fontSize: "0.625rem",
+            color: "#374151",
+        },
     };
 
     const statusOptions = [
@@ -470,44 +593,44 @@ const CompanyApplications = () => {
         { value: 'pending', label: 'Pending' },
         { value: 'reviewed', label: 'Reviewed' },
         { value: 'shortlisted', label: 'Shortlisted' },
-        { value: 'interview', label: 'Interview Scheduled' },
+        { value: 'accepted', label: 'Accepted' },
         { value: 'rejected', label: 'Rejected' },
+        { value: 'withdrawn', label: 'Withdrawn' },
     ];
 
-    const positionOptions = [
-        { value: 'all', label: 'All Positions' },
-        { value: 'Frontend Developer Intern', label: 'Frontend Developer' },
-        { value: 'Data Analyst Intern', label: 'Data Analyst' },
-        { value: 'Marketing Intern', label: 'Marketing' },
-        { value: 'UX Designer Intern', label: 'UX Designer' },
+    const dateRangeOptions = [
+        { value: 'all', label: 'All Time' },
+        { value: '7', label: 'Last 7 Days' },
+        { value: '30', label: 'Last 30 Days' },
+        { value: '90', label: 'Last 90 Days' },
     ];
 
-    const stats = [
+    const statCards = [
         {
             icon: "📥",
-            value: applications.length,
+            value: stats.totalApplications,
             label: "Total Applications",
             color: "#3b82f6",
             bgColor: "#dbeafe"
         },
         {
             icon: "⏳",
-            value: applications.filter(app => app.status === 'Pending').length,
+            value: stats.pending,
             label: "Pending Review",
             color: "#f59e0b",
             bgColor: "#fef3c7"
         },
         {
             icon: "🎯",
-            value: applications.filter(app => app.status === 'Interview Scheduled').length,
+            value: stats.interviews,
             label: "Interviews",
             color: "#8b5cf6",
             bgColor: "#ede9fe"
         },
         {
             icon: "✅",
-            value: applications.filter(app => app.status === 'Reviewed').length,
-            label: "Reviewed",
+            value: stats.accepted,
+            label: "Accepted",
             color: "#10b981",
             bgColor: "#d1fae5"
         },
@@ -524,6 +647,7 @@ const CompanyApplications = () => {
                 `}</style>
                 <div style={styles.loadingContainer}>
                     <div style={styles.loadingSpinner}></div>
+                    <p style={{ marginLeft: '1rem', color: '#6b7280' }}>Loading applications...</p>
                 </div>
             </div>
         );
@@ -536,6 +660,10 @@ const CompanyApplications = () => {
                     transform: translateY(-1px);
                     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
                 }
+                .view-button:hover, .schedule-button:hover {
+                    opacity: 0.9;
+                    transform: translateY(-1px);
+                }
             `}</style>
 
             {/* Header */}
@@ -546,9 +674,9 @@ const CompanyApplications = () => {
                 </p>
             </div>
 
-            {/* Stats */}
+            {/* Stats Cards */}
             <div style={styles.statsRow}>
-                {stats.map((stat, index) => (
+                {statCards.map((stat, index) => (
                     <div key={index} style={styles.statCard}>
                         <div style={{ ...styles.statIcon, background: stat.bgColor, color: stat.color }}>
                             {stat.icon}
@@ -569,7 +697,10 @@ const CompanyApplications = () => {
                         <select 
                             style={styles.filterSelect}
                             value={filters.status}
-                            onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
+                            onChange={(e) => {
+                                setFilters(prev => ({ ...prev, status: e.target.value }));
+                                fetchApplications();
+                            }}
                         >
                             {statusOptions.map(option => (
                                 <option key={option.value} value={option.value}>
@@ -580,29 +711,73 @@ const CompanyApplications = () => {
                     </div>
                     
                     <div style={styles.filterGroup}>
-                        <label style={styles.filterLabel}>Position</label>
+                        <label style={styles.filterLabel}>Internship Position</label>
                         <select 
                             style={styles.filterSelect}
-                            value={filters.position}
-                            onChange={(e) => setFilters(prev => ({ ...prev, position: e.target.value }))}
+                            value={filters.internshipId}
+                            onChange={(e) => {
+                                setFilters(prev => ({ ...prev, internshipId: e.target.value }));
+                                fetchApplications();
+                            }}
                         >
-                            {positionOptions.map(option => (
+                            <option value="all">All Positions</option>
+                            {companyInternships.map(internship => (
+                                <option key={internship._id} value={internship._id}>
+                                    {internship.title}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div style={styles.filterGroup}>
+                        <label style={styles.filterLabel}>Date Range</label>
+                        <select 
+                            style={styles.filterSelect}
+                            value={filters.dateRange}
+                            onChange={(e) => setFilters(prev => ({ ...prev, dateRange: e.target.value }))}
+                        >
+                            {dateRangeOptions.map(option => (
                                 <option key={option.value} value={option.value}>
                                     {option.label}
                                 </option>
                             ))}
                         </select>
                     </div>
+                </div>
 
-                    <div style={{ ...styles.filterGroup, flex: 1 }}>
+                <div style={styles.filterRow}>
+                    <div style={{ ...styles.filterGroup, flex: 2 }}>
                         <label style={styles.filterLabel}>Search</label>
                         <input
                             type="text"
                             style={styles.searchInput}
-                            placeholder="Search by candidate name, position, or department..."
+                            placeholder="Search by candidate name, email, skills, or position..."
                             value={filters.search}
                             onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
                         />
+                    </div>
+                    
+                    <div style={{ ...styles.filterGroup, flex: 0, justifyContent: 'flex-end' }}>
+                        <button
+                            style={{
+                                ...styles.actionButton,
+                                background: '#3b82f6',
+                                color: 'white',
+                                marginTop: '1.5rem'
+                            }}
+                            onClick={() => {
+                                setFilters({
+                                    status: 'all',
+                                    internshipId: 'all',
+                                    search: '',
+                                    dateRange: 'all'
+                                });
+                                fetchApplications();
+                            }}
+                            className="action-button"
+                        >
+                            Clear Filters
+                        </button>
                     </div>
                 </div>
 
@@ -613,31 +788,27 @@ const CompanyApplications = () => {
                     </span>
                     <button 
                         style={styles.actionButton}
+                        onClick={() => handleBulkAction('review')}
+                        className="action-button"
+                        disabled={updatingStatus}
+                    >
+                        📋 Mark as Reviewed
+                    </button>
+                    <button 
+                        style={styles.actionButton}
                         onClick={() => handleBulkAction('shortlist')}
                         className="action-button"
+                        disabled={updatingStatus}
                     >
-                        📋 Shortlist
+                        ⭐ Shortlist
                     </button>
                     <button 
-                        style={styles.actionButton}
+                        style={{...styles.actionButton, ...styles.primaryActionButton}}
                         onClick={() => handleBulkAction('reject')}
                         className="action-button"
+                        disabled={updatingStatus}
                     >
                         ❌ Reject
-                    </button>
-                    <button 
-                        style={styles.actionButton}
-                        onClick={() => handleBulkAction('schedule')}
-                        className="action-button"
-                    >
-                        🗓️ Schedule Interview
-                    </button>
-                    <button 
-                        style={styles.actionButton}
-                        onClick={() => handleBulkAction('email')}
-                        className="action-button"
-                    >
-                        📧 Send Email
                     </button>
                 </div>
             </div>
@@ -649,9 +820,9 @@ const CompanyApplications = () => {
                         <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📄</div>
                         <h3 style={{ color: '#374151', marginBottom: '0.5rem' }}>No applications found</h3>
                         <p style={{ color: '#6b7280', marginBottom: '1.5rem' }}>
-                            {filters.status !== 'all' || filters.search || filters.position !== 'all' 
-                                ? 'Try changing your filters'
-                                : 'No applications have been submitted yet'}
+                            {filters.status !== 'all' || filters.search || filters.internshipId !== 'all' || filters.dateRange !== 'all'
+                                ? 'Try changing your filters to see more results'
+                                : 'No applications have been submitted yet for your internships'}
                         </p>
                         <button
                             style={{
@@ -663,104 +834,144 @@ const CompanyApplications = () => {
                                 fontWeight: 600,
                                 cursor: "pointer",
                             }}
-                            onClick={() => navigate('/company/dashboard')}
+                            onClick={() => navigate('/company/internships')}
                         >
-                            Back to Dashboard
+                            View Your Internships
                         </button>
                     </div>
                 ) : (
-                    <table style={styles.table}>
-                        <thead style={styles.tableHeader}>
-                            <tr>
-                                <th style={styles.tableHeaderCell}>
-                                    <input
-                                        type="checkbox"
-                                        style={styles.checkbox}
-                                        checked={selectedApplications.length === filteredApplications.length && filteredApplications.length > 0}
-                                        onChange={(e) => handleSelectAll(e.target.checked)}
-                                    />
-                                </th>
-                                <th style={styles.tableHeaderCell}>Candidate</th>
-                                <th style={styles.tableHeaderCell}>Position</th>
-                                <th style={styles.tableHeaderCell}>Applied Date</th>
-                                <th style={styles.tableHeaderCell}>Status</th>
-                                <th style={styles.tableHeaderCell}>Stage</th>
-                                <th style={styles.tableHeaderCell}>Score</th>
-                                <th style={styles.tableHeaderCell}>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredApplications.map((application) => (
-                                <tr key={application.id}>
-                                    <td style={styles.tableCell}>
+                    <div style={{ overflowX: 'auto' }}>
+                        <table style={styles.table}>
+                            <thead style={styles.tableHeader}>
+                                <tr>
+                                    <th style={styles.tableHeaderCell}>
                                         <input
                                             type="checkbox"
                                             style={styles.checkbox}
-                                            checked={selectedApplications.includes(application.id)}
-                                            onChange={(e) => handleSelectApplication(application.id, e.target.checked)}
+                                            checked={selectedApplications.length === filteredApplications.length && filteredApplications.length > 0}
+                                            onChange={(e) => handleSelectAll(e.target.checked)}
                                         />
-                                    </td>
-                                    <td style={styles.tableCell}>
-                                        <div style={styles.candidateInfo}>
-                                            <div style={styles.candidateAvatar}>
-                                                {application.candidate.name.split(' ').map(n => n[0]).join('')}
-                                            </div>
-                                            <div style={styles.candidateDetails}>
-                                                <div style={styles.candidateName}>
-                                                    {application.candidate.name}
-                                                </div>
-                                                <div style={styles.candidateEmail}>
-                                                    {application.candidate.email}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td style={styles.tableCell}>
-                                        <div style={{ fontWeight: 500 }}>{application.position}</div>
-                                        <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>
-                                            {application.department}
-                                        </div>
-                                    </td>
-                                    <td style={styles.tableCell}>{application.appliedDate}</td>
-                                    <td style={styles.tableCell}>
-                                        <span style={{
-                                            ...styles.badge,
-                                            background: getStatusColor(application.status) + '20',
-                                            color: getStatusColor(application.status)
-                                        }}>
-                                            {application.status}
-                                        </span>
-                                    </td>
-                                    <td style={styles.tableCell}>
-                                        <span style={styles.badge}>
-                                            {application.stage}
-                                        </span>
-                                    </td>
-                                    <td style={styles.tableCell}>
-                                        <span style={styles.scoreBadge}>
-                                            {application.score}%
-                                        </span>
-                                    </td>
-                                    <td style={styles.tableCell}>
-                                        <div style={styles.actionButtons}>
-                                            <button
-                                                style={styles.viewButton}
-                                                onClick={() => alert(`View application ${application.id}`)}
-                                            >
-                                                View
-                                            </button>
-                                            <button
-                                                style={styles.scheduleButton}
-                                                onClick={() => alert(`Schedule interview for ${application.candidate.name}`)}
-                                            >
-                                                Schedule
-                                            </button>
-                                        </div>
-                                    </td>
+                                    </th>
+                                    <th style={styles.tableHeaderCell}>Candidate</th>
+                                    <th style={styles.tableHeaderCell}>Position</th>
+                                    <th style={styles.tableHeaderCell}>Applied Date</th>
+                                    <th style={styles.tableHeaderCell}>Status</th>
+                                    <th style={styles.tableHeaderCell}>Skills</th>
+                                    <th style={styles.tableHeaderCell}>Resume</th>
+                                    <th style={styles.tableHeaderCell}>Actions</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {filteredApplications.map((application) => (
+                                    <tr key={application._id}>
+                                        <td style={styles.tableCell}>
+                                            <input
+                                                type="checkbox"
+                                                style={styles.checkbox}
+                                                checked={selectedApplications.includes(application._id)}
+                                                onChange={(e) => handleSelectApplication(application._id, e.target.checked)}
+                                            />
+                                        </td>
+                                        <td style={styles.tableCell}>
+                                            <div style={styles.candidateInfo}>
+                                                <div style={styles.candidateAvatar}>
+                                                    {getInitials(application.fullName)}
+                                                </div>
+                                                <div style={styles.candidateDetails}>
+                                                    <div style={styles.candidateName}>
+                                                        {application.fullName || 'N/A'}
+                                                    </div>
+                                                    <div style={styles.candidateEmail}>
+                                                        {application.email}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td style={styles.tableCell}>
+                                            <div style={{ fontWeight: 500 }}>
+                                                {application.internship?.title || 'N/A'}
+                                            </div>
+                                            <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                                                {application.internship?.location || 'Remote'}
+                                            </div>
+                                        </td>
+                                        <td style={styles.tableCell}>
+                                            <div>{formatDate(application.appliedDate)}</div>
+                                            <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                                                {application.experience ? `${application.experience} yr` : 'Fresher'}
+                                            </div>
+                                        </td>
+                                        <td style={styles.tableCell}>
+                                            <div>
+                                                <span style={getStatusBadgeStyle(application.status)}>
+                                                    {application.status || 'Pending'}
+                                                </span>
+                                            </div>
+                                            <select
+                                                style={styles.statusSelect}
+                                                value={application.status || 'pending'}
+                                                onChange={(e) => handleStatusChange(application._id, e.target.value)}
+                                                disabled={updatingStatus}
+                                            >
+                                                <option value="pending">Pending</option>
+                                                <option value="reviewed">Reviewed</option>
+                                                <option value="shortlisted">Shortlisted</option>
+                                                <option value="accepted">Accepted</option>
+                                                <option value="rejected">Rejected</option>
+                                            </select>
+                                        </td>
+                                        <td style={styles.tableCell}>
+                                            <div style={styles.skillsContainer}>
+                                                {application.skills?.slice(0, 3).map((skill, idx) => (
+                                                    <span key={idx} style={styles.skillTag}>{skill}</span>
+                                                ))}
+                                                {application.skills?.length > 3 && (
+                                                    <span style={styles.skillTag}>+{application.skills.length - 3}</span>
+                                                )}
+                                            </div>
+                                        </td>
+                                        <td style={styles.tableCell}>
+                                            {application.resumeUrl ? (
+                                                <a 
+                                                    href={application.resumeUrl} 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer"
+                                                    style={{ color: '#3b82f6', textDecoration: 'none' }}
+                                                >
+                                                    View Resume
+                                                </a>
+                                            ) : (
+                                                <span style={{ color: '#9ca3af' }}>No resume</span>
+                                            )}
+                                        </td>
+                                        <td style={styles.tableCell}>
+                                            <div style={styles.actionButtons}>
+                                                <button
+                                                    style={styles.viewButton}
+                                                    onClick={() => handleViewApplication(application._id)}
+                                                    className="view-button"
+                                                >
+                                                    View
+                                                </button>
+                                                <button
+                                                    style={styles.scheduleButton}
+                                                    onClick={() => handleScheduleInterview(application)}
+                                                    className="schedule-button"
+                                                >
+                                                    Schedule
+                                                </button>
+                                            </div>
+                                            {application.companyNotes?.length > 0 && (
+                                                <div style={{ fontSize: '0.625rem', color: '#6b7280', marginTop: '0.5rem' }}>
+                                                    📝 {application.companyNotes.length} note(s)
+                                                </div>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 )}
             </div>
         </div>
