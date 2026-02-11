@@ -8,22 +8,29 @@ import auth from "../middleware/auth.js";
 const router = express.Router();
 
 // POST /api/resume/pdf
-// router.post("/pdf", auth, generateResumePDF);
+router.post("/pdf", auth, async (req, res, next) => {
+  try {
+    console.log("PDF Generation Request Body:", req.body);
+    console.log("User ID:", req.user._id);
 
-// POST /api/resume/docx
-// router.post("/docx", auth, generateResumeDOCX);
-
-// backend\routes\resumeRoutes.js
-router.post("/pdf", auth, (req, res, next) => {
-  console.log("PDF Generation Request Body:", req.body);
-  console.log("User ID:", req.user.id);
-  generateResumePDF(req, res).catch(next);
+    await generateResumePDF(req, res);
+  } catch (err) {
+    next(err);
+  }
 });
 
-router.post("/docx", auth, (req, res, next) => {
-  console.log("DOCX Generation Request Body:", req.body);
-  console.log("User ID:", req.user.id);
-  generateResumeDOCX(req, res).catch(next);
+/**
+ * POST /api/resume/docx
+ */
+router.post("/docx", auth, async (req, res, next) => {
+  try {
+    console.log("DOCX Generation Request Body:", req.body);
+    console.log("User ID:", req.user._id); 
+
+    await generateResumeDOCX(req, res);
+  } catch (err) {
+    next(err);
+  }
 });
 
 export default router;
