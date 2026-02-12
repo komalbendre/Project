@@ -150,6 +150,8 @@ const subjectsCoursesOptions = [
   "Computer Networks",
   "Operating Systems",
   "Software Engineering",
+  "Full Stack Development",
+  "FSD",
   "Object-Oriented Programming",
   "Web Development",
   "Mobile App Development",

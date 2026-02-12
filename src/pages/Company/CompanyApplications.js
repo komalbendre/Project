@@ -792,7 +792,7 @@ const CompanyApplications = () => {
                         className="action-button"
                         disabled={updatingStatus}
                     >
-                        📋 Mark as Reviewed
+                        Mark as Reviewed
                     </button>
                     <button 
                         style={styles.actionButton}
@@ -800,7 +800,7 @@ const CompanyApplications = () => {
                         className="action-button"
                         disabled={updatingStatus}
                     >
-                        ⭐ Shortlist
+                        Shortlist
                     </button>
                     <button 
                         style={{...styles.actionButton, ...styles.primaryActionButton}}
@@ -808,7 +808,7 @@ const CompanyApplications = () => {
                         className="action-button"
                         disabled={updatingStatus}
                     >
-                        ❌ Reject
+                        Reject
                     </button>
                 </div>
             </div>

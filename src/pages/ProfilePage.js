@@ -445,12 +445,11 @@ const ProfilePage = () => {
           {/* Contact Information */}
           <div style={styles.section}>
             <h2 style={styles.sectionTitle}>
-              <span>👤</span> Contact Information
+              Contact Information
             </h2>
             <div style={styles.divider} />
 
             <div style={styles.infoItem}>
-              <span style={styles.icon}>📧</span>
               <div style={styles.infoContent}>
                 <div style={styles.infoLabel}>Email</div>
                 <p style={styles.infoValue}>
@@ -460,7 +459,6 @@ const ProfilePage = () => {
             </div>
 
             <div style={styles.infoItem}>
-              <span style={styles.icon}>📱</span>
               <div style={styles.infoContent}>
                 <div style={styles.infoLabel}>Phone</div>
                 <p style={styles.infoValue}>
@@ -474,7 +472,7 @@ const ProfilePage = () => {
           {user.bio && (
             <div style={styles.section}>
               <h2 style={styles.sectionTitle}>
-                <span>📝</span> About
+                About
               </h2>
               <div style={styles.divider} />
               <p style={styles.bio}>
@@ -487,7 +485,7 @@ const ProfilePage = () => {
           {uniqueSkills.length > 0 && (
             <div style={styles.section}>
               <h2 style={styles.sectionTitle}>
-                <span>🔧</span> Skills & Expertise
+                Skills & Expertise
               </h2>
               <div style={styles.divider} />
               <div style={styles.skillsContainer}>
@@ -504,7 +502,7 @@ const ProfilePage = () => {
           {(user.linkedin || user.github) && (
             <div style={styles.section}>
               <h2 style={styles.sectionTitle}>
-                <span>🔗</span> Social Profiles
+                 Social Profiles
               </h2>
               <div style={styles.divider} />
 
@@ -544,7 +542,7 @@ const ProfilePage = () => {
           {user?.experience?.length > 0 && user.experience.some(exp => exp.title || exp.company || exp.description) && (
             <div style={styles.section}>
               <h2 style={styles.sectionTitle}>
-                <span>💼</span> Work Experience
+                Work Experience
               </h2>
               <div style={styles.divider} />
               {user.experience.map((exp, idx) => (
@@ -561,7 +559,7 @@ const ProfilePage = () => {
           {user?.education?.length > 0 && user.education.some(edu => edu.institution || edu.degree || edu.description) && (
             <div style={styles.section}>
               <h2 style={styles.sectionTitle}>
-                <span>🎓</span> Education
+                Education
               </h2>
               <div style={styles.divider} />
               {user.education.map((edu, idx) => (
@@ -578,7 +576,7 @@ const ProfilePage = () => {
           {user?.projects?.length > 0 && user.projects.some(proj => proj.name || proj.description) && (
             <div style={styles.section}>
               <h2 style={styles.sectionTitle}>
-                <span>🛠️</span> Projects
+                Projects
               </h2>
               <div style={styles.divider} />
               {user.projects.map((proj, idx) => (
@@ -594,7 +592,7 @@ const ProfilePage = () => {
           {user?.certifications?.length > 0 && user.certifications.some(cert => cert.name || cert.issuer) && (
             <div style={styles.section}>
               <h2 style={styles.sectionTitle}>
-                <span>📜</span> Certifications
+                Certifications
               </h2>
               <div style={styles.divider} />
               {user.certifications.map((cert, idx) => (
