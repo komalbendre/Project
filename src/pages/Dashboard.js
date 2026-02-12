@@ -7,6 +7,7 @@ import {
   AreaChart, Area
 } from "recharts";
 
+
 const Dashboard = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
