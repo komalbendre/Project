@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import Modal from "../components/Modal";
 
 const CareerPaths = () => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState("internships");
   const [activeFilters, setActiveFilters] = useState([]);
@@ -28,6 +29,8 @@ const CareerPaths = () => {
     currentRole: "",
     skills: [],
     experienceLevel: "",
+    email: "",
+    phone: "",
   });
 
   // State for dynamic data from backend
@@ -417,6 +420,8 @@ const CareerPaths = () => {
             currentRole: "Frontend Developer",
             skills: ["JavaScript", "React", "HTML", "CSS", "Node.js", "Git"],
             experienceLevel: "Intermediate",
+            email: "alex.johnson@example.com",
+            phone: "+1 (555) 123-4567"
           };
 
           setUserData(defaultData);
@@ -443,14 +448,16 @@ const CareerPaths = () => {
           const updatedUserData = {
             name: profile.fullName || "User",
             currentRole: profile.experience?.[0]?.title || "Professional",
-            skills: profile.skills || [],
+            skills: profile.technicalSkills || [],
             experienceLevel: "Intermediate",
+            email: profile.email || "",
+            phone: profile.phone || ""
           };
 
           setUserData(updatedUserData);
           setMockRecommendations(prev => ({
             ...prev,
-            skills: { ...prev.skills, current: profile.skills || [] }
+            skills: { ...prev.skills, current: profile.technicalSkills || [] }
           }));
 
           await fetchInternships();
@@ -466,6 +473,8 @@ const CareerPaths = () => {
           currentRole: "Frontend Developer",
           skills: ["JavaScript", "React", "HTML", "CSS", "Node.js", "Git"],
           experienceLevel: "Intermediate",
+          email: "alex.johnson@example.com",
+          phone: "+1 (555) 123-4567"
         };
 
         setUserData(defaultData);
@@ -501,23 +510,13 @@ const CareerPaths = () => {
 
   const handleSave = (item) => {
     alert(`Saved: ${item.title} at ${item.company || item.platform}`);
-    // In production, you would call API to save to user's saved items
     closeDetailsModal();
   };
 
   const handleApply = (item) => {
-    if (selectedCategory === "internships") {
-      alert(`Applying to: ${item.title} at ${item.company}`);
-      // In production: navigate to application page or open modal
-      // navigate(`/apply/internship/${item.id}`);
-    } else if (selectedCategory === "courses") {
-      alert(`Enrolling in: ${item.title} on ${item.platform}`);
-      // In production: redirect to course platform
-    } else {
-      alert(`Applying to: ${item.title} at ${item.company}`);
-      // In production: navigate to job application
-    }
     closeDetailsModal();
+    // Navigate to the apply page with the internship ID
+    navigate(`/apply/${item.id}`);
   };
 
   const categories = [

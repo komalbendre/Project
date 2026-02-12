@@ -12,6 +12,7 @@ import ProfilePage from "./pages/ProfilePage";
 import Dashboard from "./pages/Dashboard";
 import CareerPaths from "./pages/CareerPaths";
 import ResumeBuilder from "./pages/ResumeBuilder";
+import ApplyPage from "./pages/ApplyPage"; // Import the ApplyPage component
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminDashboard from "./pages/Admin/dashboard/AdminDashboard";
 import CompanyDashboard from './pages/Company/CompanyDashboard';
@@ -23,6 +24,8 @@ import EditInternship from './pages/Company/EditInternship';
 import CompanyInternshipView from './pages/Company/CompanyInternshipView';
 import CreateInternship from './pages/Company/CreateInternship';
 import CompanyDetails from "./pages/Admin/dashboard/CompanyDetails";
+import Internships from "./pages/Internships"; // Import the new Internships page
+import CompanyInterviews from './pages/Company/CompanyInterviews';
 // import ResumeOne from './pages/resumes/resumeOne'; 
 // import openaiRouter from "./routes/openai.js";
 import ChatbotWidget from "./components/chatbot/ChatbotWidget";
@@ -45,7 +48,7 @@ function App() {
   const isAdminRoute = location.pathname.startsWith('/admin/');
 
   // Adjust sidebar based on screen size
-  
+
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth < 768) {
@@ -99,6 +102,12 @@ function App() {
             </ProtectedRoute>
           } />
           <Route path="/career-paths" element={<CareerPaths />} />
+          <Route path="/jobs" element={<Internships />} /> {/* New route for Internships page */}
+          <Route path="/apply/:internshipId" element={
+            <ProtectedRoute>
+              <ApplyPage />
+            </ProtectedRoute>
+          } />
           <Route path="/resume" element={<ResumeBuilder />} />
           <Route path="/admin/dashboard" element={
             <ProtectedRoute>
@@ -131,6 +140,11 @@ function App() {
           <Route path="/company/edit-profile" element={
             <ProtectedRoute>
               <EditCompanyProfile />
+            </ProtectedRoute>
+          } />
+          <Route path="/company/interviews" element={
+            <ProtectedRoute>
+              <CompanyInterviews />
             </ProtectedRoute>
           } />
 

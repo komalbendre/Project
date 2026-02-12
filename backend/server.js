@@ -14,6 +14,9 @@ import careerPathRoutes from "./routes/careerPathRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
 import chatbotRoutes from "./routes/chatbotRoutes.js";
 
+import applicationRoutes from "./routes/applicationRoutes.js";
+import notificationRoutes from "./routes/notificationRoutes.js";
+import analyticsRoutes from "./routes/analyticsRoutes.js";
 
 dotenv.config();
 
@@ -51,6 +54,9 @@ app.use("/api/career-paths", careerPathRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/chatbot", chatbotRoutes);
 
+app.use("/api/applications", applicationRoutes);
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/analytics", analyticsRoutes);
 
 // Health check
 app.get("/health", (req, res) => {

@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import ApplicationsModal from "../components/ApplicationsModal";
+import SavedInternshipsModal from "../components/SavedInternshipsModal";
 import { useNavigate } from "react-router-dom";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -15,63 +17,35 @@ const Dashboard = () => {
   const [isCompanyApproved, setIsCompanyApproved] = useState(true);
   const [notifications, setNotifications] = useState([]);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isApplicationsModalOpen, setIsApplicationsModalOpen] = useState(false);
+  const [isSavedModalOpen, setIsSavedModalOpen] = useState(false);
+  const [savedCount, setSavedCount] = useState(0);
+  const [applicationsStats, setApplicationsStats] = useState({
+    totalApplications: 0,
+    statusCounts: {},
+    recentApplications: []
+  });
   const navigate = useNavigate();
 
-  // Enhanced Chart Data with more realistic numbers
-  const applicationsFunnelData = [
-    { stage: "Applied", value: 24, color: "#0073b1", fill: "rgba(0, 115, 177, 0.1)" },
-    { stage: "Screen", value: 12, color: "#00a0dc", fill: "rgba(0, 160, 220, 0.1)" },
-    { stage: "Interview", value: 6, color: "#8d6cab", fill: "rgba(141, 108, 171, 0.1)" },
-    { stage: "Final", value: 4, color: "#10b981", fill: "rgba(16, 185, 129, 0.1)" },
-    { stage: "Offer", value: 2, color: "#06c", fill: "rgba(0, 102, 204, 0.1)" },
-  ];
+  // Chart data states
+  const [applicationsFunnelData, setApplicationsFunnelData] = useState([]);
+  const [applicationsOverTimeData, setApplicationsOverTimeData] = useState([]);
+  const [weeklyActivityData, setWeeklyActivityData] = useState([]);
+  const [skillsData, setSkillsData] = useState([]);
+  const [savedVsAppliedData, setSavedVsAppliedData] = useState([]);
+  const [stats, setStats] = useState({
+    applications: { value: 0, trend: 0 },
+    interviews: { value: 0, trend: 0 },
+    offers: { value: 0, trend: 0 },
+    savedInternships: { value: 0, trend: 0 },
+  });
+  const [weeklyGoal, setWeeklyGoal] = useState({
+    target: 0,
+    current: 0,
+    progress: 0,
+  });
 
-  const applicationsOverTimeData = [
-    { month: "Sep", applications: 3, trend: 0 },
-    { month: "Oct", applications: 6, trend: 1 },
-    { month: "Nov", applications: 8, trend: 1 },
-    { month: "Dec", applications: 7, trend: -1 },
-    { month: "Jan", applications: 10, trend: 1 },
-    { month: "Feb", applications: 12, trend: 1 },
-  ];
-
-  const weeklyActivityData = [
-    { day: "Mon", applications: 3, interviews: 1 },
-    { day: "Tue", applications: 4, interviews: 2 },
-    { day: "Wed", applications: 2, interviews: 1 },
-    { day: "Thu", applications: 5, interviews: 0 },
-    { day: "Fri", applications: 3, interviews: 1 },
-    { day: "Sat", applications: 1, interviews: 0 },
-    { day: "Sun", applications: 0, interviews: 0 },
-  ];
-
-  const skillsData = [
-    { skill: "React", level: 85, category: "Frontend" },
-    { skill: "JavaScript", level: 90, category: "Frontend" },
-    { skill: "TypeScript", level: 75, category: "Frontend" },
-    { skill: "Node.js", level: 70, category: "Backend" },
-    { skill: "Python", level: 65, category: "Backend" },
-    { skill: "AWS", level: 60, category: "DevOps" },
-    { skill: "UI/UX", level: 80, category: "Design" },
-  ];
-
-  const savedVsAppliedData = [
-    { name: "Applied", value: 24, color: "#0073b1" },
-    { name: "Saved", value: 15, color: "#8d6cab" },
-    { name: "Archived", value: 8, color: "#64748b" },
-  ];
-
-  // Profile completion items
-  const profileSteps = [
-    { id: 1, label: "Add Photo", completed: true, icon: "📸" },
-    { id: 2, label: "Add Experience", completed: true, icon: "💼" },
-    { id: 3, label: "Add Education", completed: true, icon: "🎓" },
-    { id: 4, label: "Add Skills", completed: false, icon: "⚡" },
-    { id: 5, label: "Build Resume", completed: false, icon: "📄" },
-    { id: 6, label: "Add Projects", completed: false, icon: "🚀" },
-  ];
-
-  // Enhanced Quick Actions with better icons
+  // Quick Actions
   const quickActions = [
     {
       icon: (
@@ -103,63 +77,65 @@ const Dashboard = () => {
       gradient: "linear-gradient(135deg, #10b981, #34d399)",
       action: "find_jobs",
     },
-    {
-      icon: (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-          <polyline points="22 4 12 14.01 9 11.01" />
-          <path d="M12 6v6l4 2" />
-        </svg>
-      ),
-      label: "Skill Test",
-      description: "Assess your skills",
-      color: "#8d6cab",
-      gradient: "linear-gradient(135deg, #8d6cab, #a78bfa)",
-      action: "skill_test",
-    },
-    {
-      icon: (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <path d="M3 3v18h18" />
-          <path d="M19 9l-5 5-4-4-6 6" />
-          <circle cx="9" cy="9" r="2" />
-          <path d="M21 15l-4 4-2-2-4 4" />
-        </svg>
-      ),
-      label: "Analytics",
-      description: "Track your progress",
-      color: "#dd5143",
-      gradient: "linear-gradient(135deg, #dd5143, #f87171)",
-      action: "progress",
-    },
+    // {
+    //   icon: (
+    //     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+    //       <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+    //       <polyline points="22 4 12 14.01 9 11.01" />
+    //       <path d="M12 6v6l4 2" />
+    //     </svg>
+    //   ),
+    //   label: "Skill Test",
+    //   description: "Assess your skills",
+    //   color: "#8d6cab",
+    //   gradient: "linear-gradient(135deg, #8d6cab, #a78bfa)",
+    //   action: "skill_test",
+    // },
+    // {
+    //   icon: (
+    //     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+    //       <path d="M3 3v18h18" />
+    //       <path d="M19 9l-5 5-4-4-6 6" />
+    //       <circle cx="9" cy="9" r="2" />
+    //       <path d="M21 15l-4 4-2-2-4 4" />
+    //     </svg>
+    //   ),
+    //   label: "Analytics",
+    //   description: "Track your progress",
+    //   color: "#dd5143",
+    //   gradient: "linear-gradient(135deg, #dd5143, #f87171)",
+    //   action: "progress",
+    // },
   ];
 
-  // Mock data with enhanced user info
-  const mockData = {
-    user: {
-      name: "Alex Johnson",
-      role: "Frontend Developer | React Specialist",
-      location: "San Francisco, CA",
-      university: "Stanford University",
-      graduation: "May 2024",
-      connections: 543,
-      profileViews: 128,
-      avatarColor: "#0073b1",
-      completion: 75,
-      dailyGoal: 5,
-      goalProgress: 3,
-    },
-    stats: {
-      applications: { value: 24, trend: 12 },
-      interviews: { value: 6, trend: 50 },
-      offers: { value: 2, trend: 0 },
-      savedInternships: { value: 15, trend: 8 }, // Changed from responseRate to savedInternships
-    },
-    weeklyGoal: {
-      target: 10,
-      current: 7,
-      progress: 70,
-    },
+  const calculateTrend = (oldValue, newValue) => {
+    if (oldValue === 0) return newValue > 0 ? 100 : 0;
+    return ((newValue - oldValue) / oldValue * 100).toFixed(1);
+  };
+
+  const loadSavedInternshipsCount = () => {
+    const saved = localStorage.getItem("savedInternships");
+    if (saved) {
+      const savedList = JSON.parse(saved);
+      setSavedCount(savedList.length);
+      
+      setStats(prev => ({
+        ...prev,
+        savedInternships: {
+          value: savedList.length,
+          trend: calculateTrend(prev.savedInternships?.value || 0, savedList.length)
+        }
+      }));
+    } else {
+      setSavedCount(0);
+      setStats(prev => ({
+        ...prev,
+        savedInternships: {
+          value: 0,
+          trend: 0
+        }
+      }));
+    }
   };
 
   useEffect(() => {
@@ -211,9 +187,6 @@ const Dashboard = () => {
               connections: userData.connections || 0,
               profileViews: userData.profileViews || 0,
               avatarColor: "#0073b1",
-              completion: userData.completion || 75,
-              dailyGoal: userData.dailyGoal || 5,
-              goalProgress: userData.goalProgress || 3,
             });
 
             localStorage.setItem("userName", userName);
@@ -231,12 +204,168 @@ const Dashboard = () => {
           connections: 0,
           profileViews: 0,
           avatarColor: "#0073b1",
-          completion: 75,
-          dailyGoal: 5,
-          goalProgress: 3,
         });
-      } finally {
-        setLoading(false);
+      }
+    };
+
+    const fetchDashboardData = async () => {
+      try {
+        const token = localStorage.getItem("token");
+
+        const funnelResponse = await fetch(
+          `http://localhost:5000/api/dashboard/applications-funnel`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (funnelResponse.ok) {
+          const data = await funnelResponse.json();
+          setApplicationsFunnelData(data.funnelData || []);
+        }
+
+        const timelineResponse = await fetch(
+          `http://localhost:5000/api/dashboard/applications-timeline`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (timelineResponse.ok) {
+          const data = await timelineResponse.json();
+          setApplicationsOverTimeData(data.timelineData || []);
+        }
+
+        const weeklyResponse = await fetch(
+          `http://localhost:5000/api/dashboard/weekly-activity`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (weeklyResponse.ok) {
+          const data = await weeklyResponse.json();
+          setWeeklyActivityData(data.weeklyData || []);
+        }
+
+        const skillsResponse = await fetch(
+          `http://localhost:5000/api/profile/skills`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (skillsResponse.ok) {
+          const data = await skillsResponse.json();
+          setSkillsData(data.skills || []);
+        }
+
+        const savedAppliedResponse = await fetch(
+          `http://localhost:5000/api/dashboard/saved-vs-applied`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (savedAppliedResponse.ok) {
+          const data = await savedAppliedResponse.json();
+          setSavedVsAppliedData(data.savedAppliedData || []);
+        }
+
+        const statsResponse = await fetch(
+          `http://localhost:5000/api/dashboard/stats`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (statsResponse.ok) {
+          const data = await statsResponse.json();
+          setStats(data.stats || {
+            applications: { value: 0, trend: 0 },
+            interviews: { value: 0, trend: 0 },
+            offers: { value: 0, trend: 0 },
+            savedInternships: { value: 0, trend: 0 },
+          });
+        }
+
+        const goalResponse = await fetch(
+          `http://localhost:5000/api/dashboard/weekly-goal`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (goalResponse.ok) {
+          const data = await goalResponse.json();
+          setWeeklyGoal(data.weeklyGoal || {
+            target: 0,
+            current: 0,
+            progress: 0,
+          });
+        }
+
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+      }
+    };
+
+    const fetchApplicationsStats = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await fetch(
+          `http://localhost:5000/api/applications/user/stats`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          setApplicationsStats(data.data);
+
+          setStats(prev => ({
+            ...prev,
+            applications: {
+              value: data.data.totalApplications || 0,
+              trend: calculateTrend(prev.applications?.value || 0, data.data.totalApplications || 0)
+            }
+          }));
+        }
+      } catch (error) {
+        console.error("Error fetching applications stats:", error);
       }
     };
 
@@ -257,7 +386,6 @@ const Dashboard = () => {
         if (response.ok) {
           const data = await response.json();
           if (data.notifications) {
-            // Map API response to notification format
             const formattedNotifications = data.notifications.map(notification => ({
               id: notification._id || notification.id,
               type: notification.type,
@@ -281,32 +409,63 @@ const Dashboard = () => {
       } catch (error) {
         console.error("Error fetching notifications:", error);
         setNotifications([]);
+      } finally {
+        setLoading(false);
       }
     };
 
-    fetchUserData();
-    fetchNotifications();
+    // Load saved internships count
+    loadSavedInternshipsCount();
+
+    Promise.all([
+      fetchUserData(),
+      fetchDashboardData(),
+      fetchNotifications(),
+      fetchApplicationsStats()
+    ]).catch(error => {
+      console.error("Error initializing dashboard:", error);
+      setLoading(false);
+    });
+
+    // Listen for storage changes
+    const handleStorageChange = (e) => {
+      if (e.key === 'savedInternships') {
+        loadSavedInternshipsCount();
+      }
+    };
+
+    const handleCustomEvent = (e) => {
+      loadSavedInternshipsCount();
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('savedInternshipsUpdated', handleCustomEvent);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('savedInternshipsUpdated', handleCustomEvent);
+    };
   }, [navigate]);
 
   // Helper function to format time ago
   const formatTimeAgo = (date) => {
     const seconds = Math.floor((new Date() - date) / 1000);
-    
+
     let interval = seconds / 31536000;
     if (interval > 1) return Math.floor(interval) + " years ago";
-    
+
     interval = seconds / 2592000;
     if (interval > 1) return Math.floor(interval) + " months ago";
-    
+
     interval = seconds / 86400;
     if (interval > 1) return Math.floor(interval) + " days ago";
-    
+
     interval = seconds / 3600;
     if (interval > 1) return Math.floor(interval) + " hours ago";
-    
+
     interval = seconds / 60;
     if (interval > 1) return Math.floor(interval) + " minutes ago";
-    
+
     return "just now";
   };
 
@@ -351,6 +510,14 @@ const Dashboard = () => {
     }
   };
 
+  const handleApplicationsClick = () => {
+    setIsApplicationsModalOpen(true);
+  };
+
+  const handleSavedInternshipsClick = () => {
+    setIsSavedModalOpen(true);
+  };
+
   const handleQuickAction = (action) => {
     switch (action) {
       case "build_resume":
@@ -373,8 +540,7 @@ const Dashboard = () => {
   const handleNotificationClick = async (notification) => {
     try {
       const token = localStorage.getItem("token");
-      
-      // Mark notification as read
+
       const response = await fetch(
         `http://localhost:5000/api/notifications/${notification.id}/read`,
         {
@@ -387,13 +553,11 @@ const Dashboard = () => {
       );
 
       if (response.ok) {
-        // Update local state
         const updatedNotifications = notifications.map(n =>
           n.id === notification.id ? { ...n, read: true } : n
         );
         setNotifications(updatedNotifications);
 
-        // Navigate based on notification type
         switch (notification.type) {
           case "application_approved":
           case "new_application":
@@ -413,12 +577,11 @@ const Dashboard = () => {
       }
     } catch (error) {
       console.error("Error marking notification as read:", error);
-      // Still update UI and navigate even if API call fails
       const updatedNotifications = notifications.map(n =>
         n.id === notification.id ? { ...n, read: true } : n
       );
       setNotifications(updatedNotifications);
-      
+
       switch (notification.type) {
         case "application_approved":
           navigate("/applications");
@@ -452,7 +615,6 @@ const Dashboard = () => {
       }
     } catch (error) {
       console.error("Error marking all notifications as read:", error);
-      // Still update UI even if API call fails
       const updatedNotifications = notifications.map(n => ({ ...n, read: true }));
       setNotifications(updatedNotifications);
     }
@@ -476,7 +638,9 @@ const Dashboard = () => {
   const CustomFunnelTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
-      const percentage = ((data.value / applicationsFunnelData[0].value) * 100).toFixed(1);
+      const percentage = applicationsFunnelData.length > 0
+        ? ((data.value / applicationsFunnelData[0].value) * 100).toFixed(1)
+        : "0.0";
       return (
         <div style={{
           backgroundColor: 'white',
@@ -680,74 +844,6 @@ const Dashboard = () => {
       textTransform: "uppercase",
       letterSpacing: "0.5px",
       marginTop: "4px",
-    },
-    profileCompletion: {
-      padding: "24px",
-      background: "white",
-    },
-    completionHeader: {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      fontSize: "16px",
-      marginBottom: "16px",
-      fontWeight: 600,
-      color: "#0f172a",
-    },
-    progressBar: {
-      height: "8px",
-      background: "#e2e8f0",
-      borderRadius: "4px",
-      overflow: "hidden",
-      marginBottom: "16px",
-    },
-    progressFill: {
-      height: "100%",
-      background: "linear-gradient(90deg, #0073b1, #00a0dc)",
-      borderRadius: "4px",
-      transition: "width 0.6s ease",
-      position: "relative",
-      overflow: "hidden",
-    },
-    progressFillAnimated: {
-      position: "absolute",
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)",
-      animation: "pulse 2s infinite",
-    },
-    profileSteps: {
-      display: "grid",
-      gridTemplateColumns: "repeat(3, 1fr)",
-      gap: "12px",
-      marginTop: "20px",
-    },
-    stepItem: {
-      display: "flex",
-      alignItems: "center",
-      gap: "10px",
-      padding: "10px",
-      borderRadius: "8px",
-      background: "#f8fafc",
-      transition: "all 0.2s",
-    },
-    stepIcon: {
-      fontSize: "16px",
-      width: "24px",
-      height: "24px",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      borderRadius: "6px",
-      background: "rgba(0, 115, 177, 0.1)",
-      color: "#0073b1",
-    },
-    stepText: {
-      fontSize: "13px",
-      color: "#334155",
-      fontWeight: 500,
     },
 
     // Main Feed
@@ -1302,11 +1398,21 @@ const Dashboard = () => {
             </div>
 
             <div style={styles.statsGrid}>
-              {Object.entries(mockData.stats).map(([key, value]) => (
+              {Object.entries(stats).map(([key, value]) => (
                 <div
                   key={key}
-                  style={styles.statCard}
+                  style={{
+                    ...styles.statCard,
+                    cursor: key === 'applications' || key === 'savedInternships' ? 'pointer' : 'default',
+                    ...((key === 'applications' || key === 'savedInternships') && {
+                      border: '2px solid transparent',
+                      backgroundImage: 'linear-gradient(white, white), linear-gradient(135deg, #0073b1, #00a0dc)',
+                      backgroundOrigin: 'border-box',
+                      backgroundClip: 'padding-box, border-box',
+                    })
+                  }}
                   className="hover-lift"
+                  onClick={key === 'applications' ? handleApplicationsClick : key === 'savedInternships' ? handleSavedInternshipsClick : undefined}
                   onMouseEnter={(e) => {
                     e.currentTarget.querySelector('.stat-card-hover').style.opacity = 1;
                   }}
@@ -1333,44 +1439,46 @@ const Dashboard = () => {
             </div>
 
             {/* Applications Funnel Chart */}
-            <div style={styles.chartContainer}>
-              <div style={styles.chartWrapper}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={applicationsFunnelData}
-                    margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                    <XAxis
-                      dataKey="stage"
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fill: '#64748b', fontSize: 12, fontWeight: 500 }}
-                      height={40}
-                    />
-                    <YAxis
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fill: '#64748b', fontSize: 12, fontWeight: 500 }}
-                    />
-                    <Tooltip content={<CustomFunnelTooltip />} />
-                    <Bar
-                      dataKey="value"
-                      radius={[8, 8, 0, 0]}
+            {applicationsFunnelData.length > 0 && (
+              <div style={styles.chartContainer}>
+                <div style={styles.chartWrapper}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={applicationsFunnelData}
+                      margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
                     >
-                      {applicationsFunnelData.map((entry, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={entry.color}
-                          stroke={entry.color}
-                          strokeWidth={1}
-                        />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                      <XAxis
+                        dataKey="stage"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fill: '#64748b', fontSize: 12, fontWeight: 500 }}
+                        height={40}
+                      />
+                      <YAxis
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fill: '#64748b', fontSize: 12, fontWeight: 500 }}
+                      />
+                      <Tooltip content={<CustomFunnelTooltip />} />
+                      <Bar
+                        dataKey="value"
+                        radius={[8, 8, 0, 0]}
+                      >
+                        {applicationsFunnelData.map((entry, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={entry.color}
+                            stroke={entry.color}
+                            strokeWidth={1}
+                          />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Quick Actions */}
             <div style={{ marginTop: "32px" }}>
@@ -1420,61 +1528,80 @@ const Dashboard = () => {
           </div>
 
           {/* Applications Over Time Card */}
-          <div style={styles.sectionCard} className="hover-lift">
-            <div style={styles.sectionHeader}>
-              <div>
-                <h3 style={styles.sectionTitle}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0073b1" strokeWidth="2">
-                    <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-                  </svg>
-                  Applications Timeline
-                </h3>
-                <p style={styles.sectionSubtitle}>
-                  Monthly application trends
-                </p>
+          {applicationsOverTimeData.length > 0 && (
+            <div style={styles.sectionCard} className="hover-lift">
+              <div style={styles.sectionHeader}>
+                <div>
+                  <h3 style={styles.sectionTitle}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0073b1" strokeWidth="2">
+                      <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+                    </svg>
+                    Applications Timeline
+                  </h3>
+                  <p style={styles.sectionSubtitle}>
+                    Monthly application trends
+                  </p>
+                </div>
+              </div>
+              <div style={styles.chartWrapper}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart
+                    data={applicationsOverTimeData}
+                    margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                  >
+                    <defs>
+                      <linearGradient id="colorApplications" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#0073b1" stopOpacity={0.8} />
+                        <stop offset="95%" stopColor="#0073b1" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                    <XAxis
+                      dataKey="month"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: '#64748b', fontSize: 12, fontWeight: 500 }}
+                    />
+                    <YAxis
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: '#64748b', fontSize: 12, fontWeight: 500 }}
+                    />
+                    <Tooltip content={<CustomLineTooltip />} />
+                    <Area
+                      type="monotone"
+                      dataKey="applications"
+                      stroke="#0073b1"
+                      strokeWidth={2}
+                      fill="url(#colorApplications)"
+                      activeDot={{ r: 6, fill: "#0073b1", stroke: "white", strokeWidth: 2 }}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
               </div>
             </div>
-            <div style={styles.chartWrapper}>
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart
-                  data={applicationsOverTimeData}
-                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-                >
-                  <defs>
-                    <linearGradient id="colorApplications" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#0073b1" stopOpacity={0.8} />
-                      <stop offset="95%" stopColor="#0073b1" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis
-                    dataKey="month"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: '#64748b', fontSize: 12, fontWeight: 500 }}
-                  />
-                  <YAxis
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: '#64748b', fontSize: 12, fontWeight: 500 }}
-                  />
-                  <Tooltip content={<CustomLineTooltip />} />
-                  <Area
-                    type="monotone"
-                    dataKey="applications"
-                    stroke="#0073b1"
-                    strokeWidth={2}
-                    fill="url(#colorApplications)"
-                    activeDot={{ r: 6, fill: "#0073b1", stroke: "white", strokeWidth: 2 }}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+          )}
         </div>
 
         {/* Right Sidebar */}
         <div style={styles.rightSidebar}>
+          {/* Weekly Goal Card */}
+          {weeklyGoal.target > 0 && (
+            <div style={styles.goalCard} className="hover-lift">
+              <div style={styles.goalHeader}>
+                <span style={styles.goalTitle}>🎯 Weekly Goal</span>
+                <span style={styles.goalProgress}>{weeklyGoal.current}/{weeklyGoal.target}</span>
+              </div>
+              <div style={styles.goalBar}>
+                <div style={{ ...styles.goalFill, width: `${weeklyGoal.progress}%` }}></div>
+              </div>
+              <div style={styles.goalStats}>
+                <span>Applications</span>
+                <span>{weeklyGoal.progress}% completed</span>
+              </div>
+            </div>
+          )}
+
           {/* Notifications Card */}
           <div style={styles.sidebarCard} className="hover-lift">
             <div style={styles.sidebarHeader}>
@@ -1490,23 +1617,25 @@ const Dashboard = () => {
                   </span>
                 )}
               </h3>
-              {/* <button
-                style={styles.markAllReadBtn}
-                onClick={markAllAsRead}
-                onMouseEnter={(e) => {
-                  e.target.style.background = "rgba(0, 115, 177, 0.2)";
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.background = "rgba(0, 115, 177, 0.1)";
-                }}
-              >
-                Mark all read
-              </button> */}
+              {notifications.length > 0 && (
+                <button
+                  style={styles.markAllReadBtn}
+                  onClick={markAllAsRead}
+                  onMouseEnter={(e) => {
+                    e.target.style.background = "rgba(0, 115, 177, 0.2)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.background = "rgba(0, 115, 177, 0.1)";
+                  }}
+                >
+                  Mark all read
+                </button>
+              )}
             </div>
 
             {notifications.length > 0 ? (
               <div style={styles.notificationsList}>
-                {notifications.map((notification) => (
+                {notifications.slice(0, 5).map((notification) => (
                   <div
                     key={notification.id}
                     style={styles.notificationItem}
@@ -1565,60 +1694,74 @@ const Dashboard = () => {
           </div>
 
           {/* Skills Distribution Card */}
-          <div style={styles.sidebarCard} className="hover-lift">
-            <div style={styles.sidebarHeader}>
-              <h3 style={styles.sidebarTitle}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="12" r="10" />
-                  <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-                  <line x1="12" y1="17" x2="12.01" y2="17" />
-                </svg>
-                Top Skills
-              </h3>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-              {skillsData.slice(0, 5).map((skill, index) => (
-                <div key={index} style={{ position: "relative" }}>
-                  <div style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    marginBottom: "6px",
-                    fontSize: "14px",
-                    fontWeight: 500,
-                  }}>
-                    <span style={{ color: "#334155" }}>{skill.skill}</span>
-                    <span style={{ color: "#0073b1", fontWeight: 600 }}>{skill.level}%</span>
-                  </div>
-                  <div style={{
-                    height: "6px",
-                    background: "#e2e8f0",
-                    borderRadius: "3px",
-                    overflow: "hidden",
-                  }}>
+          {skillsData.length > 0 && (
+            <div style={styles.sidebarCard} className="hover-lift">
+              <div style={styles.sidebarHeader}>
+                <h3 style={styles.sidebarTitle}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+                    <line x1="12" y1="17" x2="12.01" y2="17" />
+                  </svg>
+                  Top Skills
+                </h3>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                {skillsData.slice(0, 5).map((skill, index) => (
+                  <div key={index} style={{ position: "relative" }}>
                     <div style={{
-                      width: `${skill.level}%`,
-                      height: "100%",
-                      background: "linear-gradient(90deg, #0073b1, #00a0dc)",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      marginBottom: "6px",
+                      fontSize: "14px",
+                      fontWeight: 500,
+                    }}>
+                      <span style={{ color: "#334155" }}>{skill.skill}</span>
+                      <span style={{ color: "#0073b1", fontWeight: 600 }}>{skill.level}%</span>
+                    </div>
+                    <div style={{
+                      height: "6px",
+                      background: "#e2e8f0",
                       borderRadius: "3px",
-                      transition: "width 1s ease-out",
-                      transitionDelay: `${index * 0.1}s`,
-                    }}></div>
+                      overflow: "hidden",
+                    }}>
+                      <div style={{
+                        width: `${skill.level}%`,
+                        height: "100%",
+                        background: "linear-gradient(90deg, #0073b1, #00a0dc)",
+                        borderRadius: "3px",
+                        transition: "width 1s ease-out",
+                        transitionDelay: `${index * 0.1}s`,
+                      }}></div>
+                    </div>
+                    <div style={{
+                      fontSize: "11px",
+                      color: "#94a3b8",
+                      marginTop: "4px",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.5px",
+                    }}>
+                      {skill.category}
+                    </div>
                   </div>
-                  <div style={{
-                    fontSize: "11px",
-                    color: "#94a3b8",
-                    marginTop: "4px",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.5px",
-                  }}>
-                    {skill.category}
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
+
+      {/* Modals */}
+      <ApplicationsModal
+        isOpen={isApplicationsModalOpen}
+        onClose={() => setIsApplicationsModalOpen(false)}
+        userId={localStorage.getItem("userId")}
+      />
+      
+      <SavedInternshipsModal
+        isOpen={isSavedModalOpen}
+        onClose={() => setIsSavedModalOpen(false)}
+      />
     </div>
   );
 };
