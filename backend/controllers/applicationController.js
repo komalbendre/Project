@@ -2,6 +2,7 @@ import Application from "../models/Application.js";
 import Internship from "../models/Internship.js";
 import Profile from "../models/Profile.js";
 import Company from "../models/Company.js";
+import { createInterviewNotification } from "./notificationController.js";
 
 /**
  * @desc    Apply for an internship
@@ -555,7 +556,9 @@ export const scheduleInterview = async (req, res) => {
       });
     }
 
-    const application = await Application.findById(id);
+    const application = await Application.findById(id)
+      .populate('internship', 'title')
+      .populate('company', 'companyName');
 
     if (!application) {
       return res.status(404).json({
@@ -598,6 +601,19 @@ export const scheduleInterview = async (req, res) => {
     }
 
     await application.save();
+
+    // Create notification for the user
+    try {
+      await createInterviewNotification(
+        application.userId,
+        company.companyName,
+        application.internship?.title || 'Internship',
+        date
+      );
+    } catch (notifError) {
+      console.error("Error creating notification:", notifError);
+      // Don't fail the request if notification fails
+    }
 
     res.status(200).json({
       success: true,
@@ -754,6 +770,76 @@ export const withdrawApplication = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Server error while withdrawing application"
+    });
+  }
+};
+
+/**
+ * @desc    Get user application statistics for dashboard
+ * @route   GET /api/applications/user/stats
+ * @access  Private (Users only)
+ */
+export const getUserApplicationStats = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    // Get total applications count
+    const totalApplications = await Application.countDocuments({ userId });
+
+    // Get applications grouped by status
+    const statusStats = await Application.aggregate([
+      { $match: { userId: userId } },
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // Get recent applications
+    const recentApplications = await Application.find({ userId })
+      .populate({
+        path: 'internship',
+        select: 'title companyName location stipend duration experienceLevel'
+      })
+      .populate({
+        path: 'company',
+        select: 'companyName logo industry'
+      })
+      .sort({ appliedDate: -1 })
+      .limit(5);
+
+    // Format status stats
+    const statusCounts = {
+      pending: 0,
+      reviewed: 0,
+      shortlisted: 0,
+      accepted: 0,
+      rejected: 0,
+      withdrawn: 0
+    };
+
+    statusStats.forEach(stat => {
+      if (stat._id in statusCounts) {
+        statusCounts[stat._id] = stat.count;
+      }
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        totalApplications,
+        statusCounts,
+        recentApplications
+      }
+    });
+
+  } catch (error) {
+    console.error("Error fetching user application stats:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while fetching application statistics"
     });
   }
 };

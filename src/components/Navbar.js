@@ -252,7 +252,7 @@ const Navbar = () => {
             Resume Builder
           </NavLink>
         </li>
-        <li>
+        {/* <li>
           <NavLink 
             to="/profile-form" 
             style={({ isActive }) => 
@@ -262,7 +262,7 @@ const Navbar = () => {
             <NavIcons.ProfileForm />
             Profile Form
           </NavLink>
-        </li>
+        </li> */}
       </ul>
 
       {/* Right: Search + User Menu */}

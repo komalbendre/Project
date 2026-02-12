@@ -1,34 +1,3 @@
-// import express from "express";
-// import Internship from "../models/Internship.js";
-// import { auth } from "../middleware/auth.js";
-// import { adminOnly } from "../middleware/auth.js";
-
-// const router = express.Router();
-
-// router.get("/", async (req, res) => {
-//   try {
-//     const internships = await Internship.find({ isActive: true }).sort({ postedAt: -1 });
-//     res.json(internships);
-//   } catch (error) {
-//     res.status(500).json({ message: "Server error", error: error.message });
-//   }
-// });
-
-// router.post("/", auth, adminOnly, async (req, res) => {
-//   try {
-//     const internship = new Internship({
-//       ...req.body,
-//       postedBy: req.user._id
-//     });
-//     await internship.save();
-//     res.status(201).json(internship);
-//   } catch (error) {
-//     res.status(500).json({ message: "Server error", error: error.message });
-//   }k
-// });
-
-// export default router;
-
 import express from "express";
 import Internship from "../models/Internship.js";
 import Company from "../models/Company.js";
