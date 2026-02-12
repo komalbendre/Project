@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
+import InterviewScheduleModal from "../../components/InterviewScheduleModal";
 import axios from "axios";
 
 const CompanyApplications = () => {
@@ -25,7 +26,9 @@ const CompanyApplications = () => {
         dateRange: 'all'
     });
     const [updatingStatus, setUpdatingStatus] = useState(false);
-    
+    const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+    const [selectedApplicationForInterview, setSelectedApplicationForInterview] = useState(null);
+
     const navigate = useNavigate();
     const location = useLocation();
     const token = localStorage.getItem("token");
@@ -43,7 +46,7 @@ const CompanyApplications = () => {
         const params = new URLSearchParams(location.search);
         const statusFilter = params.get('filter');
         const internshipFilter = params.get('internship');
-        
+
         if (statusFilter) {
             setFilters(prev => ({ ...prev, status: statusFilter }));
         }
@@ -59,13 +62,13 @@ const CompanyApplications = () => {
     const fetchCompanyData = async () => {
         try {
             setLoading(true);
-            
+
             // Fetch company applications
             await fetchApplications();
-            
+
             // Fetch company internships for filter dropdown
             await fetchCompanyInternships();
-            
+
         } catch (error) {
             console.error("Error fetching company data:", error);
         } finally {
@@ -77,19 +80,19 @@ const CompanyApplications = () => {
         try {
             // Build query params
             const params = new URLSearchParams();
-            
+
             if (filters.status !== 'all') {
                 params.append('status', filters.status);
             }
-            
+
             if (filters.internshipId !== 'all') {
                 params.append('internshipId', filters.internshipId);
             }
-            
+
             if (filters.search) {
                 params.append('search', filters.search);
             }
-            
+
             const response = await axios.get(
                 `http://localhost:5000/api/applications/company?${params.toString()}`,
                 { headers: { Authorization: `Bearer ${token}` } }
@@ -97,7 +100,7 @@ const CompanyApplications = () => {
 
             if (response.data.success) {
                 setApplications(response.data.data);
-                
+
                 // Update stats from response
                 if (response.data.stats) {
                     setStats({
@@ -140,7 +143,7 @@ const CompanyApplications = () => {
         // Status filter is now handled by API, but we still need to apply search locally
         if (filters.search) {
             const searchLower = filters.search.toLowerCase();
-            filtered = filtered.filter(app => 
+            filtered = filtered.filter(app =>
                 app.fullName?.toLowerCase().includes(searchLower) ||
                 app.email?.toLowerCase().includes(searchLower) ||
                 app.internship?.title?.toLowerCase().includes(searchLower) ||
@@ -154,8 +157,8 @@ const CompanyApplications = () => {
             const daysAgo = parseInt(filters.dateRange);
             const cutoffDate = new Date();
             cutoffDate.setDate(now.getDate() - daysAgo);
-            
-            filtered = filtered.filter(app => 
+
+            filtered = filtered.filter(app =>
                 new Date(app.appliedDate) >= cutoffDate
             );
         }
@@ -166,7 +169,7 @@ const CompanyApplications = () => {
     const handleStatusChange = async (applicationId, newStatus) => {
         try {
             setUpdatingStatus(true);
-            
+
             const response = await axios.patch(
                 `http://localhost:5000/api/applications/${applicationId}/status`,
                 { status: newStatus },
@@ -175,10 +178,10 @@ const CompanyApplications = () => {
 
             if (response.data.success) {
                 // Update local state
-                setApplications(prev => prev.map(app => 
+                setApplications(prev => prev.map(app =>
                     app._id === applicationId ? { ...app, status: newStatus } : app
                 ));
-                
+
                 // Refresh stats
                 fetchApplications();
             }
@@ -192,7 +195,7 @@ const CompanyApplications = () => {
 
     const handleAddNote = async (applicationId, note) => {
         if (!note.trim()) return;
-        
+
         try {
             const response = await axios.post(
                 `http://localhost:5000/api/applications/${applicationId}/notes`,
@@ -223,9 +226,9 @@ const CompanyApplications = () => {
 
         try {
             setUpdatingStatus(true);
-            
+
             let newStatus;
-            switch(action) {
+            switch (action) {
                 case 'shortlist':
                     newStatus = 'shortlisted';
                     break;
@@ -241,7 +244,7 @@ const CompanyApplications = () => {
 
             // Update each selected application
             await Promise.all(
-                selectedApplications.map(id => 
+                selectedApplications.map(id =>
                     axios.patch(
                         `http://localhost:5000/api/applications/${id}/status`,
                         { status: newStatus },
@@ -254,7 +257,7 @@ const CompanyApplications = () => {
             await fetchApplications();
             setSelectedApplications([]);
             alert(`Successfully updated ${selectedApplications.length} application(s)`);
-            
+
         } catch (error) {
             console.error("Error in bulk action:", error);
             alert(error.response?.data?.message || "Failed to perform bulk action");
@@ -264,10 +267,18 @@ const CompanyApplications = () => {
     };
 
     const handleScheduleInterview = (application) => {
-        // Navigate to interview scheduling page or open modal
-        // You can implement a modal here or navigate to a dedicated page
-        alert(`Schedule interview for ${application.fullName}`);
-        // navigate(`/company/interviews/schedule?application=${application._id}`);
+        setSelectedApplicationForInterview(application);
+        setIsScheduleModalOpen(true);
+    };
+    const handleInterviewScheduled = async (interviewData) => {
+        // Show success message
+        alert(`Interview scheduled successfully for ${selectedApplicationForInterview.fullName}`);
+
+        // Refresh applications to show the scheduled interview
+        await fetchApplications();
+
+        // Clear selected application
+        setSelectedApplicationForInterview(null);
     };
 
     const handleViewApplication = (applicationId) => {
@@ -291,7 +302,7 @@ const CompanyApplications = () => {
     };
 
     const getStatusColor = (status) => {
-        switch(status?.toLowerCase()) {
+        switch (status?.toLowerCase()) {
             case 'pending': return '#f59e0b';
             case 'reviewed': return '#3b82f6';
             case 'shortlisted': return '#8b5cf6';
@@ -694,7 +705,7 @@ const CompanyApplications = () => {
                 <div style={styles.filterRow}>
                     <div style={styles.filterGroup}>
                         <label style={styles.filterLabel}>Status</label>
-                        <select 
+                        <select
                             style={styles.filterSelect}
                             value={filters.status}
                             onChange={(e) => {
@@ -709,10 +720,10 @@ const CompanyApplications = () => {
                             ))}
                         </select>
                     </div>
-                    
+
                     <div style={styles.filterGroup}>
                         <label style={styles.filterLabel}>Internship Position</label>
-                        <select 
+                        <select
                             style={styles.filterSelect}
                             value={filters.internshipId}
                             onChange={(e) => {
@@ -731,7 +742,7 @@ const CompanyApplications = () => {
 
                     <div style={styles.filterGroup}>
                         <label style={styles.filterLabel}>Date Range</label>
-                        <select 
+                        <select
                             style={styles.filterSelect}
                             value={filters.dateRange}
                             onChange={(e) => setFilters(prev => ({ ...prev, dateRange: e.target.value }))}
@@ -756,7 +767,7 @@ const CompanyApplications = () => {
                             onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
                         />
                     </div>
-                    
+
                     <div style={{ ...styles.filterGroup, flex: 0, justifyContent: 'flex-end' }}>
                         <button
                             style={{
@@ -786,7 +797,7 @@ const CompanyApplications = () => {
                     <span style={{ fontSize: '0.875rem', color: '#6b7280', marginRight: '1rem' }}>
                         {selectedApplications.length} selected
                     </span>
-                    <button 
+                    <button
                         style={styles.actionButton}
                         onClick={() => handleBulkAction('review')}
                         className="action-button"
@@ -794,7 +805,7 @@ const CompanyApplications = () => {
                     >
                         Mark as Reviewed
                     </button>
-                    <button 
+                    <button
                         style={styles.actionButton}
                         onClick={() => handleBulkAction('shortlist')}
                         className="action-button"
@@ -802,8 +813,8 @@ const CompanyApplications = () => {
                     >
                         Shortlist
                     </button>
-                    <button 
-                        style={{...styles.actionButton, ...styles.primaryActionButton}}
+                    <button
+                        style={{ ...styles.actionButton, ...styles.primaryActionButton }}
                         onClick={() => handleBulkAction('reject')}
                         className="action-button"
                         disabled={updatingStatus}
@@ -932,9 +943,9 @@ const CompanyApplications = () => {
                                         </td>
                                         <td style={styles.tableCell}>
                                             {application.resumeUrl ? (
-                                                <a 
-                                                    href={application.resumeUrl} 
-                                                    target="_blank" 
+                                                <a
+                                                    href={application.resumeUrl}
+                                                    target="_blank"
                                                     rel="noopener noreferrer"
                                                     style={{ color: '#3b82f6', textDecoration: 'none' }}
                                                 >
@@ -974,6 +985,16 @@ const CompanyApplications = () => {
                     </div>
                 )}
             </div>
+            {/* Interview Schedule Modal */}
+<InterviewScheduleModal
+  isOpen={isScheduleModalOpen}
+  onClose={() => {
+    setIsScheduleModalOpen(false);
+    setSelectedApplicationForInterview(null);
+  }}
+  application={selectedApplicationForInterview}
+  onSuccess={handleInterviewScheduled}
+/>
         </div>
     );
 };

@@ -186,7 +186,7 @@ export const getMyProfile = async (req, res) => {
   }
 };
 
-// ✅ POST /api/profile/:userId - Create/Update profile
+// POST /api/profile/:userId - Create/Update profile
 export const updateProfile = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -321,7 +321,8 @@ export const updateProfile = async (req, res) => {
     }
 
     console.log("Saving profile data for user:", userId);
-    console.log("Profile data structure:", JSON.stringify(profileData, null, 2));
+    console.log("Technical skills:", technicalSkillsArray);
+    console.log("Soft skills:", softSkillsArray);
 
     // Find existing profile
     let profile = await Profile.findOne({ userId });
@@ -342,10 +343,13 @@ export const updateProfile = async (req, res) => {
       profileData.createdAt = Date.now();
       profile = new Profile(profileData);
       await profile.save();
+      
+      // Update user's profileCompleted status
+      await User.findByIdAndUpdate(userId, { profileCompleted: true });
     }
 
     // Populate user data
-    const populatedProfile = await Profile.findById(profile._id).populate('userId', 'name email role isApproved');
+    const populatedProfile = await Profile.findById(profile._id).populate('userId', 'fname lname email role isApproved');
 
     // Prepare response
     const responseData = {
@@ -369,7 +373,9 @@ export const updateProfile = async (req, res) => {
       updatedAt: populatedProfile.updatedAt,
       user: {
         id: populatedProfile.userId._id,
-        name: populatedProfile.userId.name,
+        fname: populatedProfile.userId.fname,
+        lname: populatedProfile.userId.lname,
+        fullName: `${populatedProfile.userId.fname} ${populatedProfile.userId.lname}`,
         email: populatedProfile.userId.email,
         role: populatedProfile.userId.role,
         isApproved: populatedProfile.userId.isApproved

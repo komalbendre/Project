@@ -527,12 +527,12 @@ const ProfileForm = () => {
   const [showSoftDropdown, setShowSoftDropdown] = useState(false);
   const technicalInputRef = useRef(null);
   const softInputRef = useRef(null);
-  
+
   // State for field of study search
   const [fieldOfStudySearch, setFieldOfStudySearch] = useState("");
   const [showFieldOfStudyDropdown, setShowFieldOfStudyDropdown] = useState(false);
   const fieldOfStudyInputRefs = useRef([]);
-  
+
   // State for subjects/courses search
   const [subjectsSearch, setSubjectsSearch] = useState("");
   const [showSubjectsDropdown, setShowSubjectsDropdown] = useState(false);
@@ -573,29 +573,29 @@ const ProfileForm = () => {
   // Custom debounce hook
   const useDebounce = (value, delay) => {
     const [debouncedValue, setDebouncedValue] = useState(value);
-    
+
     useEffect(() => {
       const handler = setTimeout(() => {
         setDebouncedValue(value);
       }, delay);
-      
+
       return () => {
         clearTimeout(handler);
       };
     }, [value, delay]);
-    
+
     return debouncedValue;
   };
 
-  // Debounce profile changes
+  // Debounce profile changes for auto-save
   const debouncedProfile = useDebounce(profile, 1000);
 
   // Auto-save to localStorage
   useEffect(() => {
     const saveToLocalStorage = () => {
-      if (debouncedProfile.fullName || debouncedProfile.email || debouncedProfile.phone || 
-          debouncedProfile.bio || debouncedProfile.technicalSkills.length > 0 || 
-          debouncedProfile.softSkills.length > 0) {
+      if (debouncedProfile.fullName || debouncedProfile.email || debouncedProfile.phone ||
+        debouncedProfile.bio || debouncedProfile.technicalSkills.length > 0 ||
+        debouncedProfile.softSkills.length > 0) {
         localStorage.setItem(`profile_draft_${userId}`, JSON.stringify(debouncedProfile));
         setHasUnsavedChanges(true);
         console.log("Auto-saved draft to localStorage");
@@ -616,14 +616,14 @@ const ProfileForm = () => {
       try {
         // Check for draft in localStorage first
         const savedDraft = localStorage.getItem(`profile_draft_${userId}`);
-        
+
         if (savedDraft) {
           try {
             const draftData = JSON.parse(savedDraft);
             console.log("Loading draft from localStorage:", draftData);
-            
+
             // Ensure all arrays are properly initialized
-            const educationData = draftData.education?.length ? 
+            const educationData = draftData.education?.length ?
               draftData.education.map(edu => ({
                 institution: edu.institution || "",
                 degree: edu.degree || "Bachelor of Science - BS",
@@ -660,11 +660,11 @@ const ProfileForm = () => {
               projects: draftData.projects?.length ? draftData.projects : [{ name: "", description: "" }],
               certifications: draftData.certifications?.length ? draftData.certifications : [{ name: "", issuer: "" }],
             });
-            
+
             setHasUnsavedChanges(true);
             setMessage({ text: "Draft data loaded from your previous session", type: "success" });
             setTimeout(() => setMessage({ text: "", type: "" }), 3000);
-            
+
             return; // Don't fetch from server if we have a draft
           } catch (parseError) {
             console.error("Error parsing saved draft:", parseError);
@@ -676,10 +676,10 @@ const ProfileForm = () => {
         const userResponse = await axios.get(`http://localhost:5000/api/users/me`, {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         });
-        
+
         const userData = userResponse.data.data || userResponse.data;
         console.log("User data:", userData);
-        
+
         // Try to get profile data
         try {
           const profileResponse = await axios.get(`http://localhost:5000/api/profile/${userId}`, {
@@ -688,12 +688,10 @@ const ProfileForm = () => {
 
           if (profileResponse.data && profileResponse.data.data) {
             const profileData = profileResponse.data.data;
-            const skillsArray = Array.isArray(profileData.skills) ? profileData.skills : [];
-            const technicalSkills = [];
-            const softSkills = [];
+
+            // Parse location
             let country = "";
             let cityState = "";
-
             if (profileData.location) {
               const locationParts = profileData.location.split(',').map(part => part.trim());
               if (locationParts.length > 1) {
@@ -704,33 +702,9 @@ const ProfileForm = () => {
               }
             }
 
-            skillsArray.forEach(skill => {
-              const normalizedSkill = skill.trim();
-              if (technicalSkillsList.includes(normalizedSkill)) {
-                technicalSkills.push(normalizedSkill);
-              } else if (softSkillsList.includes(normalizedSkill)) {
-                softSkills.push(normalizedSkill);
-              } else {
-                technicalSkills.push(normalizedSkill);
-              }
-            });
-
-            // Also check for separate technical/soft skills fields
-            if (profileData.technicalSkills && Array.isArray(profileData.technicalSkills)) {
-              profileData.technicalSkills.forEach(skill => {
-                if (!technicalSkills.includes(skill)) {
-                  technicalSkills.push(skill);
-                }
-              });
-            }
-            
-            if (profileData.softSkills && Array.isArray(profileData.softSkills)) {
-              profileData.softSkills.forEach(skill => {
-                if (!softSkills.includes(skill)) {
-                  softSkills.push(skill);
-                }
-              });
-            }
+            // Get technical and soft skills directly from profile
+            const technicalSkills = profileData.technicalSkills || [];
+            const softSkills = profileData.softSkills || [];
 
             // Transform education data to new structure
             let educationData = [{
@@ -743,12 +717,12 @@ const ProfileForm = () => {
               gradeCGPA: "",
               subjectsCourses: ""
             }];
-            
+
             if (profileData.education?.length) {
               educationData = profileData.education.map(edu => ({
                 institution: edu.institution || "",
                 degree: edu.degree || "Bachelor of Science - BS",
-                fieldOfStudy: edu.fieldOfStudy || edu.field || "",
+                fieldOfStudy: edu.fieldOfStudy || "",
                 startYear: edu.startYear || "",
                 endYear: edu.endYear || "",
                 currentlyStudying: edu.currentlyStudying || false,
@@ -764,8 +738,8 @@ const ProfileForm = () => {
               country: country || "India",
               cityState: cityState,
               bio: profileData.bio || "",
-              technicalSkills: technicalSkills,
-              softSkills: softSkills,
+              technicalSkills: technicalSkills, // Use technical skills directly
+              softSkills: softSkills,           // Use soft skills separately
               linkedin: profileData.linkedin || "",
               github: profileData.github || "",
               experience: profileData.experience?.length ? profileData.experience : [{ title: "", company: "", description: "" }],
@@ -847,7 +821,7 @@ const ProfileForm = () => {
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
-    
+
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
@@ -876,12 +850,12 @@ const ProfileForm = () => {
   const handleArrayChange = (section, index, field, value) => {
     const updated = [...profile[section]];
     updated[index][field] = value;
-    
+
     // If currentlyStudying is checked, clear end year
     if (field === 'currentlyStudying' && value === true) {
       updated[index].endYear = '';
     }
-    
+
     setProfile(prev => ({ ...prev, [section]: updated }));
     setHasUnsavedChanges(true);
   };
@@ -918,18 +892,29 @@ const ProfileForm = () => {
           location = profile.cityState || profile.country;
         }
       }
-      const allSkills = [...profile.technicalSkills, ...profile.softSkills];
 
+      // DON'T merge skills - send them separately
       const profileData = {
-        ...profile,
+        fullName: profile.fullName,
+        email: profile.email,
+        phone: profile.phone,
+        bio: profile.bio,
+        technicalSkills: profile.technicalSkills, // Send technical skills
+        softSkills: profile.softSkills,           // Send soft skills separately
+        linkedin: profile.linkedin,
+        github: profile.github,
         location: location,
-        skills: allSkills,
+        experience: profile.experience,
+        education: profile.education,
+        projects: profile.projects,
+        certifications: profile.certifications
       };
 
+      // Remove the fields we don't want to send
       delete profileData.country;
       delete profileData.cityState;
-      delete profileData.technicalSkills;
-      delete profileData.softSkills;
+
+      console.log("Sending profile data:", profileData);
 
       await axios.post(`http://localhost:5000/api/profile/${userId}`, profileData, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
@@ -938,32 +923,14 @@ const ProfileForm = () => {
       // Clear draft from localStorage after successful save
       localStorage.removeItem(`profile_draft_${userId}`);
       setHasUnsavedChanges(false);
-      
+
       setMessage({ text: "Profile saved successfully!", type: "success" });
       setTimeout(() => navigate("/profile"), 1500);
     } catch (err) {
       console.error("Error saving profile:", err);
-      setMessage({ text: "Failed to save profile. Please try again.", type: "error" });
+      setMessage({ text: err.response?.data?.message || "Failed to save profile. Please try again.", type: "error" });
     } finally {
       setLoading(false);
-    }
-  };
-
-  // Save draft manually
-  const handleSaveDraft = () => {
-    localStorage.setItem(`profile_draft_${userId}`, JSON.stringify(profile));
-    setMessage({ text: "Draft saved locally! Your changes will persist even if you close the page.", type: "success" });
-    setHasUnsavedChanges(true);
-    setTimeout(() => setMessage({ text: "", type: "" }), 3000);
-  };
-
-  // Clear draft
-  const handleClearDraft = () => {
-    if (window.confirm("Are you sure you want to clear your draft? This cannot be undone.")) {
-      localStorage.removeItem(`profile_draft_${userId}`);
-      setMessage({ text: "Draft cleared!", type: "success" });
-      setHasUnsavedChanges(false);
-      setTimeout(() => setMessage({ text: "", type: "" }), 2000);
     }
   };
 
@@ -1032,7 +999,7 @@ const ProfileForm = () => {
     const updated = [...profile.education];
     updated[index].fieldOfStudy = value;
     setProfile(prev => ({ ...prev, education: updated }));
-    
+
     // Show dropdown if there's text
     setShowFieldOfStudyDropdown(value.length > 0);
     setShowTechnicalDropdown(false);
@@ -1046,7 +1013,7 @@ const ProfileForm = () => {
     const updated = [...profile.education];
     updated[index].subjectsCourses = value;
     setProfile(prev => ({ ...prev, education: updated }));
-    
+
     // Show dropdown if there's text
     setShowSubjectsDropdown(value.length > 0);
     setShowTechnicalDropdown(false);
@@ -1059,7 +1026,7 @@ const ProfileForm = () => {
     if (e.key === 'Enter') {
       e.preventDefault();
       const inputValue = e.target.value.trim();
-      
+
       if (inputValue) {
         handleAddSkill(inputValue, 'technical');
         setTechnicalSearch("");
@@ -1072,7 +1039,7 @@ const ProfileForm = () => {
     if (e.key === 'Enter') {
       e.preventDefault();
       const inputValue = e.target.value.trim();
-      
+
       if (inputValue) {
         handleAddSkill(inputValue, 'soft');
         setSoftSearch("");
@@ -1086,7 +1053,7 @@ const ProfileForm = () => {
     if (e.key === 'Enter') {
       e.preventDefault();
       const inputValue = e.target.value.trim();
-      
+
       if (inputValue) {
         // Add the custom subject
         const updated = [...profile.education];
@@ -1121,7 +1088,7 @@ const ProfileForm = () => {
     updated[index].fieldOfStudy = field;
     setProfile(prev => ({ ...prev, education: updated }));
     setShowFieldOfStudyDropdown(false);
-    
+
     // Focus back on the input
     if (fieldOfStudyInputRefs.current[index]) {
       fieldOfStudyInputRefs.current[index].focus();
@@ -1134,7 +1101,7 @@ const ProfileForm = () => {
     updated[index].subjectsCourses = subject;
     setProfile(prev => ({ ...prev, education: updated }));
     setShowSubjectsDropdown(false);
-    
+
     // Focus back on the input
     if (subjectsInputRefs.current[index]) {
       subjectsInputRefs.current[index].focus();
@@ -1144,31 +1111,31 @@ const ProfileForm = () => {
   // Get filtered technical skills (not already selected)
   const filteredTechnicalSkills = technicalSkillsList
     .filter(skill => !profile.technicalSkills.includes(skill))
-    .filter(skill => 
-      technicalSearch === "" || 
+    .filter(skill =>
+      technicalSearch === "" ||
       skill.toLowerCase().includes(technicalSearch.toLowerCase())
     );
 
   // Get filtered soft skills (not already selected)
   const filteredSoftSkills = softSkillsList
     .filter(skill => !profile.softSkills.includes(skill))
-    .filter(skill => 
-      softSearch === "" || 
+    .filter(skill =>
+      softSearch === "" ||
       skill.toLowerCase().includes(softSearch.toLowerCase())
     );
 
   // Get filtered field of study options
   const getFilteredFieldOfStudyOptions = (searchValue) => {
-    return fieldOfStudyOptions.filter(field => 
-      searchValue === "" || 
+    return fieldOfStudyOptions.filter(field =>
+      searchValue === "" ||
       field.toLowerCase().includes(searchValue.toLowerCase())
     );
   };
 
   // Get filtered subjects/courses options
   const getFilteredSubjectsOptions = (searchValue) => {
-    return subjectsCoursesOptions.filter(subject => 
-      searchValue === "" || 
+    return subjectsCoursesOptions.filter(subject =>
+      searchValue === "" ||
       subject.toLowerCase().includes(searchValue.toLowerCase())
     );
   };
@@ -1176,15 +1143,15 @@ const ProfileForm = () => {
   // Default objects for each section
   const defaultObjects = {
     experience: { title: "", company: "", description: "" },
-    education: { 
-      institution: "", 
+    education: {
+      institution: "",
       degree: "Bachelor of Science - BS", // Set as default
-      fieldOfStudy: "", 
-      startYear: "", 
-      endYear: "", 
-      currentlyStudying: false, 
-      gradeCGPA: "", 
-      subjectsCourses: "" 
+      fieldOfStudy: "",
+      startYear: "",
+      endYear: "",
+      currentlyStudying: false,
+      gradeCGPA: "",
+      subjectsCourses: ""
     },
     projects: { name: "", description: "" },
     certifications: { name: "", issuer: "" }
@@ -1969,7 +1936,7 @@ const ProfileForm = () => {
                     onKeyDown={handleTechnicalKeyDown}
                     style={styles.searchInput}
                   />
-                  
+
                   {showTechnicalDropdown && filteredTechnicalSkills.length > 0 && (
                     <div style={styles.dropdownList}>
                       {filteredTechnicalSkills.map((skill, index) => (
@@ -1988,10 +1955,10 @@ const ProfileForm = () => {
                       ))}
                     </div>
                   )}
-                  
+
                   {showTechnicalDropdown && filteredTechnicalSkills.length === 0 && technicalSearch && (
                     <div style={styles.dropdownList}>
-                      <div 
+                      <div
                         style={{
                           ...styles.dropdownItem,
                           borderBottom: "none",
@@ -2062,7 +2029,7 @@ const ProfileForm = () => {
                     onKeyDown={handleSoftKeyDown}
                     style={styles.searchInput}
                   />
-                  
+
                   {showSoftDropdown && filteredSoftSkills.length > 0 && (
                     <div style={styles.dropdownList}>
                       {filteredSoftSkills.map((skill, index) => (
@@ -2081,10 +2048,10 @@ const ProfileForm = () => {
                       ))}
                     </div>
                   )}
-                  
+
                   {showSoftDropdown && filteredSoftSkills.length === 0 && softSearch && (
                     <div style={styles.dropdownList}>
-                      <div 
+                      <div
                         style={{
                           ...styles.dropdownItem,
                           borderBottom: "none",
@@ -2213,7 +2180,7 @@ const ProfileForm = () => {
                       style={styles.searchInput}
                       placeholder="Search or type your field of study..."
                     />
-                    
+
                     {showFieldOfStudyDropdown && edu.fieldOfStudy && getFilteredFieldOfStudyOptions(edu.fieldOfStudy).length > 0 && (
                       <div style={styles.dropdownList}>
                         {getFilteredFieldOfStudyOptions(edu.fieldOfStudy).map((field, fieldIndex) => (
@@ -2325,7 +2292,7 @@ const ProfileForm = () => {
                         style={styles.searchInput}
                         placeholder="Search or type subjects/courses..."
                       />
-                      
+
                       {showSubjectsDropdown && edu.subjectsCourses && getFilteredSubjectsOptions(edu.subjectsCourses).length > 0 && (
                         <div style={styles.dropdownList}>
                           {getFilteredSubjectsOptions(edu.subjectsCourses).map((subject, subjectIndex) => (
@@ -2344,10 +2311,10 @@ const ProfileForm = () => {
                           ))}
                         </div>
                       )}
-                      
+
                       {showSubjectsDropdown && getFilteredSubjectsOptions(edu.subjectsCourses).length === 0 && edu.subjectsCourses && (
                         <div style={styles.dropdownList}>
-                          <div 
+                          <div
                             style={{
                               ...styles.dropdownItem,
                               borderBottom: "none",
@@ -2710,7 +2677,7 @@ const ProfileForm = () => {
 
           <h1 style={styles.title}>Edit Your Profile</h1>
         </div>
-        
+
         {hasUnsavedChanges && (
           <div style={{
             padding: "0.5rem 1rem",
@@ -2762,7 +2729,7 @@ const ProfileForm = () => {
           <div style={styles.formContent}>
             {renderTabContent()}
 
-            {/* Form Actions */}
+            {/* Form Actions - Only Save and Cancel buttons */}
             <div style={styles.buttonGroup}>
               <button
                 type="submit"
@@ -2801,43 +2768,9 @@ const ProfileForm = () => {
                 ) : (
                   <>
                     <Icons.Save />
-                    Save Profile to Server
+                    Save Profile
                   </>
                 )}
-              </button>
-
-              {/* Save Draft Button */}
-              <button
-                type="button"
-                style={{
-                  ...styles.secondaryButton,
-                  backgroundColor: "#f0f9ff",
-                  color: "#0369a1",
-                  borderColor: "#bae6fd"
-                }}
-                onClick={handleSaveDraft}
-                onMouseEnter={(e) => e.currentTarget.style.background = "#e0f2fe"}
-                onMouseLeave={(e) => e.currentTarget.style.background = "#f0f9ff"}
-              >
-                <Icons.Save />
-                Save Draft Locally
-              </button>
-
-              {/* Clear Draft Button */}
-              <button
-                type="button"
-                style={{
-                  ...styles.secondaryButton,
-                  backgroundColor: "#fef2f2",
-                  color: "#dc2626",
-                  borderColor: "#fecaca"
-                }}
-                onClick={handleClearDraft}
-                onMouseEnter={(e) => e.currentTarget.style.background = "#fee2e2"}
-                onMouseLeave={(e) => e.currentTarget.style.background = "#fef2f2"}
-              >
-                <Icons.X />
-                Clear Draft
               </button>
 
               <button

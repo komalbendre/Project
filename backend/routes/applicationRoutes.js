@@ -9,7 +9,8 @@ import {
   scheduleInterview,
   makeOffer,
   withdrawApplication,
-  getCompanyApplicationStats
+  getCompanyApplicationStats,
+  getUserApplicationStats  // Add this import
 } from "../controllers/applicationController.js";
 import { auth, roleCheck, companyOnly } from "../middleware/auth.js";
 
@@ -25,6 +26,9 @@ router.post("/:internshipId/apply", auth, roleCheck(['user']), applyForInternshi
 // Get user's applications
 router.get("/user", auth, roleCheck(['user']), getUserApplications);
 
+// Get user application statistics for dashboard
+router.get("/user/stats", auth, roleCheck(['user']), getUserApplicationStats);  // Move this before the parameterized route
+
 // Withdraw application
 router.post("/:id/withdraw", auth, roleCheck(['user']), withdrawApplication);
 
@@ -36,7 +40,7 @@ router.get("/company", auth, companyOnly, getCompanyApplications);
 router.get("/stats/company", auth, companyOnly, getCompanyApplicationStats);
 
 // ===== SHARED ROUTES (with authorization in controller) =====
-// Get application by ID
+// Get application by ID - THIS MUST BE LAST because :id is a parameter
 router.get("/:id", auth, getApplicationById);
 
 // ===== COMPANY ONLY ROUTES =====
