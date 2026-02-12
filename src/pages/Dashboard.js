@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import ApplicationsModal from "../components/ApplicationsModal";
 import SavedInternshipsModal from "../components/SavedInternshipsModal";
+import InterviewsModal from "../components/InterviewsModal";
 import { useNavigate } from "react-router-dom";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -8,6 +9,7 @@ import {
   PieChart, Pie, Cell,
   AreaChart, Area
 } from "recharts";
+import axios from "axios";
 
 const Dashboard = () => {
   const [user, setUser] = useState(null);
@@ -18,6 +20,7 @@ const Dashboard = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isApplicationsModalOpen, setIsApplicationsModalOpen] = useState(false);
   const [isSavedModalOpen, setIsSavedModalOpen] = useState(false);
+  const [isInterviewsModalOpen, setIsInterviewsModalOpen] = useState(false);
   const [savedCount, setSavedCount] = useState(0);
   const [applicationsStats, setApplicationsStats] = useState({
     totalApplications: 0,
@@ -29,19 +32,11 @@ const Dashboard = () => {
   // Chart data states
   const [applicationsFunnelData, setApplicationsFunnelData] = useState([]);
   const [applicationsOverTimeData, setApplicationsOverTimeData] = useState([]);
-  const [weeklyActivityData, setWeeklyActivityData] = useState([]);
-  const [skillsData, setSkillsData] = useState([]);
-  const [savedVsAppliedData, setSavedVsAppliedData] = useState([]);
   const [stats, setStats] = useState({
     applications: { value: 0, trend: 0 },
     interviews: { value: 0, trend: 0 },
     offers: { value: 0, trend: 0 },
     savedInternships: { value: 0, trend: 0 },
-  });
-  const [weeklyGoal, setWeeklyGoal] = useState({
-    target: 0,
-    current: 0,
-    progress: 0,
   });
 
   // Quick Actions
@@ -76,35 +71,6 @@ const Dashboard = () => {
       gradient: "linear-gradient(135deg, #10b981, #34d399)",
       action: "find_jobs",
     },
-    // {
-    //   icon: (
-    //     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-    //       <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-    //       <polyline points="22 4 12 14.01 9 11.01" />
-    //       <path d="M12 6v6l4 2" />
-    //     </svg>
-    //   ),
-    //   label: "Skill Test",
-    //   description: "Assess your skills",
-    //   color: "#8d6cab",
-    //   gradient: "linear-gradient(135deg, #8d6cab, #a78bfa)",
-    //   action: "skill_test",
-    // },
-    // {
-    //   icon: (
-    //     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-    //       <path d="M3 3v18h18" />
-    //       <path d="M19 9l-5 5-4-4-6 6" />
-    //       <circle cx="9" cy="9" r="2" />
-    //       <path d="M21 15l-4 4-2-2-4 4" />
-    //     </svg>
-    //   ),
-    //   label: "Analytics",
-    //   description: "Track your progress",
-    //   color: "#dd5143",
-    //   gradient: "linear-gradient(135deg, #dd5143, #f87171)",
-    //   action: "progress",
-    // },
   ];
 
   const calculateTrend = (oldValue, newValue) => {
@@ -134,6 +100,114 @@ const Dashboard = () => {
           trend: 0
         }
       }));
+    }
+  };
+
+  // Fetch applications over time
+  const fetchApplicationsOverTime = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      
+      // Get all user applications
+      const response = await axios.get(
+        `http://localhost:5000/api/applications/user?limit=100`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (response.data.success) {
+        const applications = response.data.data;
+        
+        // Group applications by month
+        const monthlyData = {};
+        const last6Months = [];
+        
+        // Get last 6 months
+        for (let i = 5; i >= 0; i--) {
+          const date = new Date();
+          date.setMonth(date.getMonth() - i);
+          const monthYear = date.toLocaleString('default', { month: 'short', year: 'numeric' });
+          last6Months.push(monthYear);
+          monthlyData[monthYear] = 0;
+        }
+
+        // Count applications per month
+        applications.forEach(app => {
+          const date = new Date(app.appliedDate);
+          const monthYear = date.toLocaleString('default', { month: 'short', year: 'numeric' });
+          if (monthlyData.hasOwnProperty(monthYear)) {
+            monthlyData[monthYear]++;
+          }
+        });
+
+        // Format for chart
+        const timelineData = last6Months.map(month => ({
+          month,
+          applications: monthlyData[month] || 0
+        }));
+
+        setApplicationsOverTimeData(timelineData);
+      }
+    } catch (error) {
+      console.error("Error fetching applications timeline:", error);
+      setApplicationsOverTimeData([]);
+    }
+  };
+
+  // Fetch applications funnel data
+  const fetchApplicationsFunnel = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      
+      const response = await axios.get(
+        `http://localhost:5000/api/applications/user/stats`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (response.data.success) {
+        const { statusCounts, totalApplications } = response.data.data;
+        
+        // Get interviews count from applications with scheduled interviews
+        const applicationsResponse = await axios.get(
+          `http://localhost:5000/api/applications/user?limit=100`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        let interviewsCount = 0;
+        if (applicationsResponse.data.success) {
+          interviewsCount = applicationsResponse.data.data.filter(app => app.interview?.scheduled).length;
+        }
+        
+        // Define funnel stages with colors
+        const stages = [
+          { stage: 'Applied', value: statusCounts.pending || 0, color: '#3b82f6' },
+          { stage: 'Reviewed', value: statusCounts.reviewed || 0, color: '#8b5cf6' },
+          { stage: 'Shortlisted', value: statusCounts.shortlisted || 0, color: '#f59e0b' },
+          { stage: 'Accepted', value: statusCounts.accepted || 0, color: '#10b981' },
+          { stage: 'Rejected', value: statusCounts.rejected || 0, color: '#ef4444' }
+        ];
+        
+        setApplicationsFunnelData(stages);
+        
+        // Update stats
+        setStats(prev => ({
+          ...prev,
+          applications: {
+            value: totalApplications || 0,
+            trend: calculateTrend(prev.applications?.value || 0, totalApplications || 0)
+          },
+          interviews: {
+            value: interviewsCount || 0,
+            trend: calculateTrend(prev.interviews?.value || 0, interviewsCount || 0)
+          },
+          offers: {
+            value: statusCounts.accepted || 0,
+            trend: calculateTrend(prev.offers?.value || 0, statusCounts.accepted || 0)
+          }
+        }));
+      }
+    } catch (error) {
+      console.error("Error fetching funnel data:", error);
+      setApplicationsFunnelData([]);
     }
   };
 
@@ -207,134 +281,11 @@ const Dashboard = () => {
       }
     };
 
-    const fetchDashboardData = async () => {
-      try {
-        const token = localStorage.getItem("token");
-
-        const funnelResponse = await fetch(
-          `http://localhost:5000/api/dashboard/applications-funnel`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
-
-        if (funnelResponse.ok) {
-          const data = await funnelResponse.json();
-          setApplicationsFunnelData(data.funnelData || []);
-        }
-
-        const timelineResponse = await fetch(
-          `http://localhost:5000/api/dashboard/applications-timeline`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
-
-        if (timelineResponse.ok) {
-          const data = await timelineResponse.json();
-          setApplicationsOverTimeData(data.timelineData || []);
-        }
-
-        const weeklyResponse = await fetch(
-          `http://localhost:5000/api/dashboard/weekly-activity`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
-
-        if (weeklyResponse.ok) {
-          const data = await weeklyResponse.json();
-          setWeeklyActivityData(data.weeklyData || []);
-        }
-
-        const skillsResponse = await fetch(
-          `http://localhost:5000/api/profile/skills`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
-
-        if (skillsResponse.ok) {
-          const data = await skillsResponse.json();
-          setSkillsData(data.skills || []);
-        }
-
-        const savedAppliedResponse = await fetch(
-          `http://localhost:5000/api/dashboard/saved-vs-applied`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
-
-        if (savedAppliedResponse.ok) {
-          const data = await savedAppliedResponse.json();
-          setSavedVsAppliedData(data.savedAppliedData || []);
-        }
-
-        const statsResponse = await fetch(
-          `http://localhost:5000/api/dashboard/stats`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
-
-        if (statsResponse.ok) {
-          const data = await statsResponse.json();
-          setStats(data.stats || {
-            applications: { value: 0, trend: 0 },
-            interviews: { value: 0, trend: 0 },
-            offers: { value: 0, trend: 0 },
-            savedInternships: { value: 0, trend: 0 },
-          });
-        }
-
-        const goalResponse = await fetch(
-          `http://localhost:5000/api/dashboard/weekly-goal`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
-
-        if (goalResponse.ok) {
-          const data = await goalResponse.json();
-          setWeeklyGoal(data.weeklyGoal || {
-            target: 0,
-            current: 0,
-            progress: 0,
-          });
-        }
-
-      } catch (error) {
-        console.error("Error fetching dashboard data:", error);
-      }
+    const fetchAllDashboardData = async () => {
+      await Promise.all([
+        fetchApplicationsOverTime(),
+        fetchApplicationsFunnel()
+      ]);
     };
 
     const fetchApplicationsStats = async () => {
@@ -354,14 +305,6 @@ const Dashboard = () => {
         if (response.ok) {
           const data = await response.json();
           setApplicationsStats(data.data);
-
-          setStats(prev => ({
-            ...prev,
-            applications: {
-              value: data.data.totalApplications || 0,
-              trend: calculateTrend(prev.applications?.value || 0, data.data.totalApplications || 0)
-            }
-          }));
         }
       } catch (error) {
         console.error("Error fetching applications stats:", error);
@@ -418,7 +361,7 @@ const Dashboard = () => {
 
     Promise.all([
       fetchUserData(),
-      fetchDashboardData(),
+      fetchAllDashboardData(),
       fetchNotifications(),
       fetchApplicationsStats()
     ]).catch(error => {
@@ -515,6 +458,10 @@ const Dashboard = () => {
 
   const handleSavedInternshipsClick = () => {
     setIsSavedModalOpen(true);
+  };
+
+  const handleInterviewsClick = () => {
+    setIsInterviewsModalOpen(true);
   };
 
   const handleQuickAction = (action) => {
@@ -637,7 +584,7 @@ const Dashboard = () => {
   const CustomFunnelTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
-      const percentage = applicationsFunnelData.length > 0
+      const percentage = applicationsFunnelData.length > 0 && applicationsFunnelData[0].value > 0
         ? ((data.value / applicationsFunnelData[0].value) * 100).toFixed(1)
         : "0.0";
       return (
@@ -662,7 +609,7 @@ const Dashboard = () => {
             <span style={{ color: '#666' }}>{data.value} applications</span>
           </div>
           <div style={{ color: '#999', marginTop: '4px' }}>
-            {percentage}% conversion
+            {percentage}% of total
           </div>
         </div>
       );
@@ -1165,50 +1112,6 @@ const Dashboard = () => {
       lineHeight: 1.6,
     },
 
-    // Weekly Goal Card
-    goalCard: {
-      background: "linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)",
-      borderRadius: "12px",
-      padding: "20px",
-      border: "1px solid #bae6fd",
-      marginBottom: "20px",
-    },
-    goalHeader: {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginBottom: "16px",
-    },
-    goalTitle: {
-      fontSize: "16px",
-      color: "#0369a1",
-      fontWeight: 600,
-    },
-    goalProgress: {
-      fontSize: "14px",
-      color: "#0369a1",
-      fontWeight: 700,
-    },
-    goalBar: {
-      height: "8px",
-      background: "#e0f2fe",
-      borderRadius: "4px",
-      overflow: "hidden",
-      marginBottom: "12px",
-    },
-    goalFill: {
-      height: "100%",
-      background: "linear-gradient(90deg, #0ea5e9, #38bdf8)",
-      borderRadius: "4px",
-      transition: "width 0.6s ease",
-    },
-    goalStats: {
-      display: "flex",
-      justifyContent: "space-between",
-      fontSize: "13px",
-      color: "#64748b",
-    },
-
     // Loading State
     loadingContainer: {
       display: "flex",
@@ -1402,8 +1305,8 @@ const Dashboard = () => {
                   key={key}
                   style={{
                     ...styles.statCard,
-                    cursor: key === 'applications' || key === 'savedInternships' ? 'pointer' : 'default',
-                    ...((key === 'applications' || key === 'savedInternships') && {
+                    cursor: key === 'applications' || key === 'savedInternships' || key === 'interviews' ? 'pointer' : 'default',
+                    ...((key === 'applications' || key === 'savedInternships' || key === 'interviews') && {
                       border: '2px solid transparent',
                       backgroundImage: 'linear-gradient(white, white), linear-gradient(135deg, #0073b1, #00a0dc)',
                       backgroundOrigin: 'border-box',
@@ -1411,7 +1314,11 @@ const Dashboard = () => {
                     })
                   }}
                   className="hover-lift"
-                  onClick={key === 'applications' ? handleApplicationsClick : key === 'savedInternships' ? handleSavedInternshipsClick : undefined}
+                  onClick={
+                    key === 'applications' ? handleApplicationsClick : 
+                    key === 'savedInternships' ? handleSavedInternshipsClick :
+                    key === 'interviews' ? handleInterviewsClick : undefined
+                  }
                   onMouseEnter={(e) => {
                     e.currentTarget.querySelector('.stat-card-hover').style.opacity = 1;
                   }}
@@ -1431,14 +1338,16 @@ const Dashboard = () => {
                   <div style={styles.statCardDescription}>
                     {key === 'savedInternships'
                       ? 'Internships saved'
+                      : key === 'interviews'
+                      ? 'Total interviews scheduled'
                       : `Total ${key.toLowerCase()}`}
                   </div>
                 </div>
               ))}
             </div>
 
-            {/* Applications Funnel Chart */}
-            {applicationsFunnelData.length > 0 && (
+            {/* Applications Funnel Chart - Dynamic */}
+            {applicationsFunnelData.length > 0 ? (
               <div style={styles.chartContainer}>
                 <div style={styles.chartWrapper}>
                   <ResponsiveContainer width="100%" height="100%">
@@ -1476,6 +1385,10 @@ const Dashboard = () => {
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
+              </div>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '40px 0', color: '#64748b' }}>
+                No application data available yet. Start applying to internships!
               </div>
             )}
 
@@ -1526,8 +1439,8 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Applications Over Time Card */}
-          {applicationsOverTimeData.length > 0 && (
+          {/* Applications Over Time Card - Dynamic */}
+          {applicationsOverTimeData.length > 0 ? (
             <div style={styles.sectionCard} className="hover-lift">
               <div style={styles.sectionHeader}>
                 <div>
@@ -1538,7 +1451,7 @@ const Dashboard = () => {
                     Applications Timeline
                   </h3>
                   <p style={styles.sectionSubtitle}>
-                    Monthly application trends
+                    Your application activity over the last 6 months
                   </p>
                 </div>
               </div>
@@ -1579,28 +1492,11 @@ const Dashboard = () => {
                 </ResponsiveContainer>
               </div>
             </div>
-          )}
+          ) : null}
         </div>
 
         {/* Right Sidebar */}
         <div style={styles.rightSidebar}>
-          {/* Weekly Goal Card */}
-          {weeklyGoal.target > 0 && (
-            <div style={styles.goalCard} className="hover-lift">
-              <div style={styles.goalHeader}>
-                <span style={styles.goalTitle}>🎯 Weekly Goal</span>
-                <span style={styles.goalProgress}>{weeklyGoal.current}/{weeklyGoal.target}</span>
-              </div>
-              <div style={styles.goalBar}>
-                <div style={{ ...styles.goalFill, width: `${weeklyGoal.progress}%` }}></div>
-              </div>
-              <div style={styles.goalStats}>
-                <span>Applications</span>
-                <span>{weeklyGoal.progress}% completed</span>
-              </div>
-            </div>
-          )}
-
           {/* Notifications Card */}
           <div style={styles.sidebarCard} className="hover-lift">
             <div style={styles.sidebarHeader}>
@@ -1691,62 +1587,6 @@ const Dashboard = () => {
               </div>
             )}
           </div>
-
-          {/* Skills Distribution Card */}
-          {skillsData.length > 0 && (
-            <div style={styles.sidebarCard} className="hover-lift">
-              <div style={styles.sidebarHeader}>
-                <h3 style={styles.sidebarTitle}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-                    <line x1="12" y1="17" x2="12.01" y2="17" />
-                  </svg>
-                  Top Skills
-                </h3>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                {skillsData.slice(0, 5).map((skill, index) => (
-                  <div key={index} style={{ position: "relative" }}>
-                    <div style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      marginBottom: "6px",
-                      fontSize: "14px",
-                      fontWeight: 500,
-                    }}>
-                      <span style={{ color: "#334155" }}>{skill.skill}</span>
-                      <span style={{ color: "#0073b1", fontWeight: 600 }}>{skill.level}%</span>
-                    </div>
-                    <div style={{
-                      height: "6px",
-                      background: "#e2e8f0",
-                      borderRadius: "3px",
-                      overflow: "hidden",
-                    }}>
-                      <div style={{
-                        width: `${skill.level}%`,
-                        height: "100%",
-                        background: "linear-gradient(90deg, #0073b1, #00a0dc)",
-                        borderRadius: "3px",
-                        transition: "width 1s ease-out",
-                        transitionDelay: `${index * 0.1}s`,
-                      }}></div>
-                    </div>
-                    <div style={{
-                      fontSize: "11px",
-                      color: "#94a3b8",
-                      marginTop: "4px",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.5px",
-                    }}>
-                      {skill.category}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
@@ -1760,6 +1600,12 @@ const Dashboard = () => {
       <SavedInternshipsModal
         isOpen={isSavedModalOpen}
         onClose={() => setIsSavedModalOpen(false)}
+      />
+
+      <InterviewsModal
+        isOpen={isInterviewsModalOpen}
+        onClose={() => setIsInterviewsModalOpen(false)}
+        userId={localStorage.getItem("userId")}
       />
     </div>
   );
