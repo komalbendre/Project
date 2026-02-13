@@ -3,6 +3,13 @@ import ChatMessage from "../models/ChatMessage.js";
 import Profile from "../models/Profile.js";
 import User from "../models/User.js";
 
+import OpenAI from "openai";
+
+const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+});
+
+
 // ===============================
 // 🔹 GET CHAT HISTORY
 // ===============================
@@ -65,7 +72,7 @@ How can I help you today?`
 // ===============================
 export const sendMessage = async (req, res) => {
     try {
-        const userId = req.user_id;
+        const userId = req.user._id;
         const { message } = req.body;
 
         if (!message) {
@@ -75,7 +82,9 @@ export const sendMessage = async (req, res) => {
         const session = await ChatSession.findOne({ userId });
 
         if (!session) {
-            return res.status(400).json({ message: "Chat session not found" });
+            session = await ChatSession.create({
+                userId: userId
+            });
         }
 
         // Save user message
@@ -85,8 +94,31 @@ export const sendMessage = async (req, res) => {
             message
         });
 
-        // 🔹 Temporary simple bot reply (we upgrade next)
-        const botReply = "I understand 👍 Let me process that for you.";
+        // Get session context
+        const profile = await Profile.findOne({ userId });
+        const user = await User.findById(userId);
+
+        // Build context for AI
+        const systemPrompt = `
+You are an AI Career Assistant.
+User name: ${profile?.fullName || user.fname}
+Degree: ${profile?.education?.[0]?.degree || ""}
+Field: ${profile?.education?.[0]?.fieldOfStudy || ""}
+Skills: ${profile?.technicalSkills?.join(", ") || ""}
+
+Give helpful, practical, career-focused advice.
+Be friendly and concise.
+`;
+
+        const completion = await openai.chat.completions.create({
+            model: "gpt-4o-mini",
+            messages: [
+                { role: "system", content: systemPrompt },
+                { role: "user", content: message }
+            ],
+        });
+
+        const botReply = completion.choices[0].message.content;
 
         // Save bot reply
         await ChatMessage.create({

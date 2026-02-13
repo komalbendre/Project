@@ -27,7 +27,12 @@ const ChatbotWindow = ({ onClose }) => {
                     headers: { Authorization: `Bearer ${token}` },
                 });
 
-            setMessages(res.data.messages || []);
+            const formatted = res.data.messages.map((msg) => ({
+                role: msg.sender,
+                content: msg.message,
+            }));
+
+            setMessages(formatted);
         } catch (err) {
             console.error("Error loading history:", err);
         }
@@ -44,18 +49,24 @@ const ChatbotWindow = ({ onClose }) => {
         try {
             const res = await axios.post(
                 "http://localhost:5000/api/chatbot/message",
-
                 { message: input },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
 
-            setMessages((prev) => [...prev, res.data.reply]);
+            const botMessage = {
+                role: "bot",
+                content: res.data.reply,
+            };
+
+            setMessages((prev) => [...prev, botMessage]);
+
         } catch (err) {
             console.error("Error sending message:", err);
         }
 
         setLoading(false);
     };
+
 
     return (
         <div
