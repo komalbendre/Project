@@ -87,7 +87,7 @@ const ChatbotWindow = ({ onClose }) => {
             {/* Header */}
             <div
                 style={{
-                    background: "#4f46e5",
+                    background: "#8e89f4",
                     color: "white",
                     padding: "12px",
                     borderTopLeftRadius: "12px",
@@ -156,7 +156,7 @@ const ChatbotWindow = ({ onClose }) => {
                     style={{
                         marginLeft: "8px",
                         padding: "8px 12px",
-                        background: "#4f46e5",
+                        background: "#665ff2",
                         color: "white",
                         border: "none",
                         borderRadius: "6px",

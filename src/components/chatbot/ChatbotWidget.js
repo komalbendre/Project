@@ -17,22 +17,23 @@ const ChatbotWidget = () => {
           position: "fixed",
           bottom: "20px",
           right: "20px",
+          fontSize: "30px",
+          cursor: "pointer",
+          zIndex: 1000,
+          background: "linear-gradient(135deg, white)",
+          borderRadius: "50%",
           width: "60px",
           height: "60px",
-          borderRadius: "50%",
-          backgroundColor: "#4f46e5",
-          color: "white",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontSize: "24px",
-          cursor: "pointer",
-          boxShadow: "0 4px 10px rgba(0,0,0,0.2)",
-          zIndex: 1000,
+          boxShadow: "0 0 50px rgba(11, 58, 226, 0.7)",
+          animation: "float 3s ease-in-out infinite",
         }}
       >
-        💬
+        ✨
       </div>
+
 
       {/* Chat Window */}
       {isOpen && <ChatbotWindow onClose={toggleChat} />}

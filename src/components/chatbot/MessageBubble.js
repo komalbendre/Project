@@ -16,7 +16,7 @@ const MessageBubble = ({ message }) => {
           maxWidth: "75%",
           padding: "8px 12px",
           borderRadius: "12px",
-          backgroundColor: isUser ? "#4f46e5" : "#f3f4f6",
+          backgroundColor: isUser ? "#7770f5" : "#f3f4f6",
           color: isUser ? "white" : "black",
           fontSize: "14px",
           lineHeight: "1.4",
