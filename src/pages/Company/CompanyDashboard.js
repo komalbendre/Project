@@ -39,148 +39,155 @@ const CompanyDashboard = () => {
     }, [token, userRole, navigate]);
 
     const fetchAllData = async () => {
-        try {
-            setLoading(true);
+    try {
+        setLoading(true);
 
-            // Fetch company data
-            const companyResponse = await axios.get(
-                "http://localhost:5000/api/companies/my-company",
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-            setCompanyData(companyResponse.data.data);
+        // Fetch company data
+        const companyResponse = await axios.get(
+            "http://localhost:5000/api/companies/my-company",
+            { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setCompanyData(companyResponse.data.data);
 
-            // Fetch analytics
-            await fetchAnalyticsData();
+        // Fetch internships with application counts
+        await fetchInternships();
 
-            // Fetch internships
-            await fetchInternships();
+        // Fetch applications and stats
+        await fetchApplications();
 
-            // Fetch applications
-            await fetchApplications();
+        // Fetch analytics/stats from dedicated endpoints
+        await fetchAnalyticsData();
 
-        } catch (error) {
-            console.error("Error fetching data:", error);
-            // Fallback to mock data if API fails
-            setCompanyData({
-                status: 'approved',
-                companyName: 'Tech Innovations Inc.',
-                industry: 'Technology',
-                description: 'Leading tech company specializing in AI solutions',
-                contactEmail: 'hr@techinnovations.com',
-                phoneNo: '+1 (555) 123-4567',
-                city: 'San Francisco',
-                country: 'USA',
-                createdAt: new Date().toISOString()
-            });
-        } finally {
-            setLoading(false);
-        }
-    };
+    } catch (error) {
+        console.error("Error fetching data:", error);
+    } finally {
+        setLoading(false);
+    }
+};
 
     const fetchAnalyticsData = async () => {
-        try {
-            const analyticsResponse = await axios.get(
-                "http://localhost:5000/api/companies/analytics",
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
+    try {
+        // Get application statistics
+        const statsResponse = await axios.get(
+            "http://localhost:5000/api/applications/stats/company",
+            { headers: { Authorization: `Bearer ${token}` } }
+        );
 
-            if (analyticsResponse.data.success) {
-                setAnalyticsData(analyticsResponse.data.data);
-            } else {
-                const mockAnalytics = generateMockAnalytics();
-                setAnalyticsData(mockAnalytics);
-            }
-        } catch (error) {
-            console.error("Error fetching analytics:", error);
-            const mockAnalytics = generateMockAnalytics();
-            setAnalyticsData(mockAnalytics);
-        }
-    };
-
-    const fetchInternships = async () => {
-        try {
-            const internshipsResponse = await axios.get(
-                "http://localhost:5000/api/companies/internships",
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-
-            if (internshipsResponse.data.success) {
-                const internshipsData = internshipsResponse.data.data.map(internship => ({
-                    ...internship,
-                    id: internship._id,
-                    title: internship.title,
-                    applicants: internship.applicationCount || 0,
-                    status: internship.status,
-                    postedDate: new Date(internship.createdAt).toLocaleDateString()
-                }));
-                setInternships(internshipsData);
-            }
-        } catch (error) {
-            console.error("Error fetching internships:", error);
-        }
-    };
-
-    const fetchApplications = async () => {
-        try {
-            const applicationsResponse = await axios.get(
-                "http://localhost:5000/api/companies/applications",
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-
-            if (applicationsResponse.data.success) {
-                const apps = applicationsResponse.data.data.map(app => ({
-                    ...app,
-                    id: app._id || app.id,
-                    date: new Date(app.appliedDate).toLocaleDateString(),
-                    score: app.score || 0,
-                    // Add interview date if available, otherwise use application date + 3 days as mock
-                    interviewDate: app.interviewDate ||
-                        new Date(new Date(app.appliedDate).getTime() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-                }));
-                setApplications(apps);
-
-                // Calculate quick stats from real data
-                const today = new Date().toLocaleDateString();
-                const todayApps = apps.filter(app =>
-                    new Date(app.appliedDate).toLocaleDateString() === today
-                ).length;
-
-                const pendingApps = apps.filter(app =>
-                    app.status === 'Pending'
-                ).length;
-
-                const upcomingInterviews = apps.filter(app =>
-                    app.status === 'Interview Scheduled'
-                ).length;
-
-                setQuickStats({
-                    todayApplications: todayApps,
-                    pendingReviews: pendingApps,
-                    upcomingInterviewsCount: upcomingInterviews,
-                    newMessages: 3
-                });
-            } else {
-                const mockApplications = generateMockApplications();
-                setApplications(mockApplications);
-                setQuickStats({
-                    todayApplications: mockApplications.filter(app => app.date === 'Today').length,
-                    pendingReviews: mockApplications.filter(app => app.status === 'Pending').length,
-                    upcomingInterviewsCount: mockApplications.filter(app => app.status === 'Interview Scheduled').length,
-                    newMessages: 3
-                });
-            }
-        } catch (error) {
-            console.error("Error fetching applications:", error);
-            const mockApplications = generateMockApplications();
-            setApplications(mockApplications);
-            setQuickStats({
-                todayApplications: mockApplications.filter(app => app.date === 'Today').length,
-                pendingReviews: mockApplications.filter(app => app.status === 'Pending').length,
-                upcomingInterviewsCount: mockApplications.filter(app => app.status === 'Interview Scheduled').length,
-                newMessages: 3
+        if (statsResponse.data.success) {
+            const stats = statsResponse.data.data;
+            
+            // Format analytics data for the dashboard
+            setAnalyticsData({
+                overview: {
+                    totalInternships: internships.length,
+                    activeInternships: internships.filter(i => i.status === 'Open').length,
+                    totalApplications: stats.overall?.totalApplications || 0,
+                    interviewScheduled: applications.filter(app => app.interview?.scheduled).length,
+                    hired: stats.overall?.accepted || 0,
+                    conversionRate: stats.overall?.totalApplications > 0 
+                        ? `${((stats.overall?.accepted || 0) / stats.overall?.totalApplications * 100).toFixed(1)}%` 
+                        : "0%",
+                    avgResponseTime: "2.5 days" // You'd need to calculate this from data
+                },
+                upcomingInterviews: applications
+                    .filter(app => app.interview?.scheduled && new Date(app.interview.date) > new Date())
+                    .slice(0, 5),
+                recentActivities: [] // You'd need to create an activity log
             });
         }
-    };
+    } catch (error) {
+        console.error("Error fetching analytics:", error);
+        // Fallback to calculating from applications data
+        if (applications.length > 0) {
+            setAnalyticsData({
+                overview: {
+                    totalInternships: internships.length,
+                    activeInternships: internships.filter(i => i.status === 'Open').length,
+                    totalApplications: applications.length,
+                    interviewScheduled: applications.filter(app => app.interview?.scheduled).length,
+                    hired: applications.filter(app => app.status === 'accepted').length,
+                    conversionRate: applications.length > 0 
+                        ? `${((applications.filter(app => app.status === 'accepted').length / applications.length) * 100).toFixed(1)}%` 
+                        : "0%",
+                    avgResponseTime: "2.5 days"
+                },
+                upcomingInterviews: applications
+                    .filter(app => app.interview?.scheduled && new Date(app.interview.date) > new Date())
+                    .slice(0, 5),
+                recentActivities: []
+            });
+        }
+    }
+};
+
+    const fetchInternships = async () => {
+    try {
+        const internshipsResponse = await axios.get(
+            "http://localhost:5000/api/companies/internships",
+            { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        if (internshipsResponse.data.success) {
+            const internshipsData = internshipsResponse.data.data.map(internship => ({
+                ...internship,
+                id: internship._id,
+                title: internship.title,
+                applicants: internship.applicationCount || 0,
+                status: internship.status,
+                postedDate: new Date(internship.createdAt).toLocaleDateString()
+            }));
+            setInternships(internshipsData);
+        }
+    } catch (error) {
+        console.error("Error fetching internships:", error);
+    }
+};
+    const fetchApplications = async () => {
+    try {
+        const applicationsResponse = await axios.get(
+            "http://localhost:5000/api/applications/company",
+            { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        if (applicationsResponse.data.success) {
+            const apps = applicationsResponse.data.data.map(app => ({
+                ...app,
+                id: app._id,
+                candidateName: app.fullName,
+                position: app.internship?.title || 'Unknown Position',
+                date: new Date(app.appliedDate).toLocaleDateString(),
+                appliedDate: app.appliedDate,
+                status: app.status,
+                score: app.score || 0,
+                interviewDate: app.interview?.date || null
+            }));
+            setApplications(apps);
+
+            // Calculate quick stats from real data
+            const today = new Date().toDateString();
+            const todayApps = apps.filter(app => 
+                new Date(app.appliedDate).toDateString() === today
+            ).length;
+
+            const pendingApps = apps.filter(app => 
+                app.status === 'pending'
+            ).length;
+
+            const upcomingInterviews = apps.filter(app => 
+                app.interview?.scheduled && new Date(app.interview.date) > new Date()
+            ).length;
+
+            setQuickStats({
+                todayApplications: todayApps,
+                pendingReviews: pendingApps,
+                upcomingInterviewsCount: upcomingInterviews,
+                newMessages: 3 // You'd need a messages endpoint for this
+            });
+        }
+    } catch (error) {
+        console.error("Error fetching applications:", error);
+    }
+};
 
     const generateMockAnalytics = () => ({
         overview: {
@@ -206,80 +213,96 @@ const CompanyDashboard = () => {
 
     // Function to generate calendar data
     const getInterviewCalendarData = () => {
-        // Get interviews from applications
-        const interviewApplications = applications.filter(app => app.status === 'Interview Scheduled');
+    // Get interviews from applications that have scheduled interviews
+    const interviewApplications = applications.filter(app => app.interview?.scheduled);
 
-        // Group interviews by date
-        const interviewsByDate = {};
-        interviewApplications.forEach(app => {
-            const interviewDate = new Date(app.interviewDate || app.date || new Date());
-            const dateKey = interviewDate.toISOString().split('T')[0]; // YYYY-MM-DD
+    // Group interviews by date
+    const interviewsByDate = {};
+    interviewApplications.forEach(app => {
+        const interviewDate = new Date(app.interview.date);
+        const dateKey = interviewDate.toISOString().split('T')[0];
 
-            if (!interviewsByDate[dateKey]) {
-                interviewsByDate[dateKey] = [];
-            }
-            interviewsByDate[dateKey].push(app);
+        if (!interviewsByDate[dateKey]) {
+            interviewsByDate[dateKey] = [];
+        }
+        interviewsByDate[dateKey].push(app);
+    });
+
+    // Get current month and year
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth();
+
+    // Generate calendar for current month
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
+
+    // Create calendar array
+    const calendar = [];
+
+    // Add empty cells for days before the first day of the month
+    for (let i = 0; i < firstDayOfMonth; i++) {
+        calendar.push({ day: null, hasInterview: false, interviewCount: 0 });
+    }
+
+    // Add days of the month
+    for (let day = 1; day <= daysInMonth; day++) {
+        const date = new Date(currentYear, currentMonth, day);
+        const dateKey = date.toISOString().split('T')[0];
+        const hasInterview = interviewsByDate[dateKey];
+
+        calendar.push({
+            day,
+            date: dateKey,
+            hasInterview: !!hasInterview,
+            interviewCount: hasInterview ? hasInterview.length : 0,
+            isToday: date.toDateString() === new Date().toDateString(),
+            isPast: date < new Date(new Date().setHours(0, 0, 0, 0))
         });
+    }
 
-        // Get current month and year
-        const currentDate = new Date();
-        const currentYear = currentDate.getFullYear();
-        const currentMonth = currentDate.getMonth();
+    return {
+        calendar,
+        monthName: currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+        totalInterviews: interviewApplications.length,
+        upcomingInterviews: interviewApplications.filter(app => {
+            const interviewDate = new Date(app.interview.date);
+            return interviewDate >= new Date(new Date().setHours(0, 0, 0, 0));
+        }).length
+    };
+};
 
-        // Generate calendar for current month
-        const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-        const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
-
-        // Create calendar array
-        const calendar = [];
-
-        // Add empty cells for days before the first day of the month
-        for (let i = 0; i < firstDayOfMonth; i++) {
-            calendar.push({ day: null, hasInterview: false, interviewCount: 0 });
-        }
-
-        // Add days of the month
-        for (let day = 1; day <= daysInMonth; day++) {
-            const date = new Date(currentYear, currentMonth, day);
-            const dateKey = date.toISOString().split('T')[0];
-            const hasInterview = interviewsByDate[dateKey];
-
-            calendar.push({
-                day,
-                date: dateKey,
-                hasInterview: !!hasInterview,
-                interviewCount: hasInterview ? hasInterview.length : 0,
-                isToday: date.toDateString() === new Date().toDateString(),
-                isPast: date < new Date(new Date().setHours(0, 0, 0, 0))
-            });
-        }
-
-        return {
-            calendar,
-            monthName: currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
-            totalInterviews: interviewApplications.length,
-            upcomingInterviews: interviewApplications.filter(app => {
-                const interviewDate = new Date(app.interviewDate || app.date || new Date());
-                return interviewDate >= new Date(new Date().setHours(0, 0, 0, 0));
-            }).length
-        };
+    // Updated color scheme: Black (structure), Blue (primary actions), White (background)
+    const colors = {
+        black: '#000000',
+        blackLight: '#1a1a1a',
+        blackLighter: '#333333',
+        blue: '#0066cc',
+        blueLight: '#4d94ff',
+        blueLighter: '#e6f0ff',
+        white: '#ffffff',
+        whiteDark: '#f8f8f8',
+        whiteDarker: '#f0f0f0',
+        gray: '#666666',
+        grayLight: '#999999',
+        grayLighter: '#cccccc'
     };
 
     const styles = {
         container: {
             fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif",
-            background: "#f8fafc",
+            background: colors.whiteDark,
             minHeight: "100vh",
             padding: "2rem 2rem 2rem 2rem",
         },
         card: {
-            background: "white",
+            background: colors.white,
             padding: "1.5rem",
             borderRadius: "12px",
             boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
         },
         statCard: {
-            background: "white",
+            background: colors.white,
             padding: "1.5rem",
             borderRadius: "12px",
             boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
@@ -295,10 +318,11 @@ const CompanyDashboard = () => {
             fontSize: "1.75rem",
             fontWeight: 700,
             marginBottom: "0.25rem",
+            color: colors.black,
         },
         statLabel: {
             fontSize: "0.875rem",
-            color: "#6b7280",
+            color: colors.gray,
             fontWeight: 500,
         },
         statChange: {
@@ -306,10 +330,10 @@ const CompanyDashboard = () => {
             fontWeight: 600,
         },
         positiveChange: {
-            color: "#10b981",
+            color: colors.blue,
         },
         negativeChange: {
-            color: "#ef4444",
+            color: "#ef4444", // Keeping red for negative changes
         },
         chartContainer: {
             height: "300px",
@@ -318,12 +342,12 @@ const CompanyDashboard = () => {
         emptyState: {
             textAlign: "center",
             padding: "2rem",
-            color: "#6b7280",
+            color: colors.gray,
         },
         primaryButton: {
             padding: "0.75rem 1.5rem",
-            background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-            color: "white",
+            background: colors.blue,
+            color: colors.white,
             border: "none",
             borderRadius: "8px",
             fontWeight: 600,
@@ -334,12 +358,12 @@ const CompanyDashboard = () => {
             gap: "0.5rem",
         },
         companyHeader: {
-            background: "#ffffff",
+            background: colors.white,
             borderRadius: "12px",
             padding: "2rem",
             marginBottom: "2rem",
             boxShadow: "0 2px 8px rgba(0, 0, 0, 0.08)",
-            border: "1px solid #e5e7eb",
+            border: `1px solid ${colors.grayLighter}`,
             position: "relative",
         },
         companyHeaderContent: {
@@ -353,17 +377,17 @@ const CompanyDashboard = () => {
             height: "80px",
             minWidth: "80px",
             borderRadius: "10px",
-            background: "#f8fafc",
+            background: colors.whiteDark,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             overflow: "hidden",
-            border: "1px solid #e5e7eb",
+            border: `1px solid ${colors.grayLighter}`,
         },
         companyLogo: {
             fontSize: "1.75rem",
             fontWeight: "bold",
-            color: "#374151",
+            color: colors.black,
             fontFamily: "'Inter', sans-serif",
         },
         companyLogoImage: {
@@ -385,7 +409,7 @@ const CompanyDashboard = () => {
         companyName: {
             fontSize: "clamp(1.5rem, 2vw, 2rem)",
             fontWeight: 700,
-            color: "#1f2937",
+            color: colors.black,
             margin: 0,
             letterSpacing: "-0.5px",
         },
@@ -394,8 +418,8 @@ const CompanyDashboard = () => {
             alignItems: "center",
             gap: "0.375rem",
             padding: "0.25rem 0.75rem",
-            background: "#10b981",
-            color: "white",
+            background: colors.blue,
+            color: colors.white,
             borderRadius: "4px",
             fontSize: "0.75rem",
             fontWeight: 600,
@@ -407,7 +431,7 @@ const CompanyDashboard = () => {
             gap: "1.25rem",
             marginBottom: "1.25rem",
             paddingBottom: "1.25rem",
-            borderBottom: "1px solid #e5e7eb",
+            borderBottom: `1px solid ${colors.grayLighter}`,
         },
         metaItem: {
             display: "flex",
@@ -422,14 +446,14 @@ const CompanyDashboard = () => {
             alignItems: "center",
             justifyContent: "center",
             fontSize: "0.875rem",
-            color: "#6b7280",
+            color: colors.gray,
         },
         metaContent: {
             flex: 1,
         },
         metaLabel: {
             fontSize: "0.75rem",
-            color: "#6b7280",
+            color: colors.gray,
             fontWeight: 500,
             textTransform: "uppercase",
             letterSpacing: "0.5px",
@@ -438,18 +462,18 @@ const CompanyDashboard = () => {
         metaValue: {
             fontSize: "0.875rem",
             fontWeight: 500,
-            color: "#374151",
+            color: colors.black,
         },
         companyDescription: {
-            color: "#4b5563",
+            color: colors.gray,
             fontSize: "0.875rem",
             lineHeight: 1.6,
             maxWidth: "800px",
             marginBottom: "1.5rem",
             padding: "1rem",
-            background: "#f9fafb",
+            background: colors.whiteDark,
             borderRadius: "6px",
-            borderLeft: "3px solid #10b981",
+            borderLeft: `3px solid ${colors.blue}`,
         },
         headerActions: {
             display: "flex",
@@ -469,14 +493,14 @@ const CompanyDashboard = () => {
             border: "1px solid",
         },
         primaryAction: {
-            background: "#10b981",
-            color: "white",
-            borderColor: "#10b981",
+            background: colors.blue,
+            color: colors.white,
+            borderColor: colors.blue,
         },
         secondaryAction: {
-            background: "white",
-            color: "#374151",
-            borderColor: "#d1d5db",
+            background: colors.white,
+            color: colors.black,
+            borderColor: colors.grayLighter,
         },
         actionIcon: {
             fontSize: "0.875rem",
@@ -484,7 +508,7 @@ const CompanyDashboard = () => {
         memberSince: {
             marginTop: "1rem",
             fontSize: "0.75rem",
-            color: "#9ca3af",
+            color: colors.grayLight,
             fontWeight: 500,
             display: "flex",
             alignItems: "center",
@@ -499,39 +523,40 @@ const CompanyDashboard = () => {
         loadingSpinner: {
             width: "50px",
             height: "50px",
-            border: "5px solid #f3f3f3",
-            borderTop: "5px solid #10b981",
+            border: `5px solid ${colors.grayLighter}`,
+            borderTop: `5px solid ${colors.blue}`,
             borderRadius: "50%",
             animation: "spin 1s linear infinite",
         },
+        link: {
+            color: colors.blue,
+            textDecoration: 'none',
+            fontWeight: 500,
+        }
     };
 
     const stats = [
-        {
-            value: analyticsData?.overview?.totalInternships || internships.length || 0,
-            label: "Total Internships",
-            change: internships.length > 0 ? "+12%" : "0%",
-            action: () => navigate("/company/internships")
-        },
-        {
-            value: analyticsData?.overview?.activeInternships || internships.filter(i => i.status === 'Active').length || 0,
-            label: "Active Internships",
-            change: internships.filter(i => i.status === 'Active').length > 0 ? "+3%" : "0%",
-            action: () => navigate("/company/internships?status=active")
-        },
-        {
-            value: analyticsData?.overview?.totalApplications || applications.length || 0,
-            label: "Total Applications",
-            change: applications.length > 0 ? "+24%" : "0%",
-            action: () => navigate("/company/applications")
-        },
-        {
-            value: analyticsData?.overview?.interviewScheduled || applications.filter(app => app.status === 'Interview Scheduled').length || 0,
-            label: "Interviews",
-            change: applications.filter(app => app.status === 'Interview Scheduled').length > 0 ? "+8%" : "0%",
-            action: () => navigate("/company/interviews")
-        },
-    ];
+    {
+        value: analyticsData?.overview?.totalInternships || internships.length || 0,
+        label: "Total Internships",
+        action: () => navigate("/company/internships")
+    },
+    {
+        value: analyticsData?.overview?.activeInternships || internships.filter(i => i.status === 'Open').length || 0,
+        label: "Active Internships",
+        action: () => navigate("/company/internships?status=active")
+    },
+    {
+        value: analyticsData?.overview?.totalApplications || applications.length || 0,
+        label: "Total Applications",
+        action: () => navigate("/company/applications")
+    },
+    {
+        value: analyticsData?.overview?.interviewScheduled || applications.filter(app => app.interview?.scheduled).length || 0,
+        label: "Interviews",
+        action: () => navigate("/company/interviews")
+    },
+];
 
     const handleViewCandidate = (candidateId) => {
         navigate(`/company/candidates/${candidateId}`);
@@ -556,7 +581,7 @@ const CompanyDashboard = () => {
                 `}</style>
                 <div style={styles.loadingContainer}>
                     <div style={styles.loadingSpinner}></div>
-                    <p style={{ marginLeft: "1rem", color: "#6b7280" }}>Loading company dashboard...</p>
+                    <p style={{ marginLeft: "1rem", color: colors.gray }}>Loading company dashboard...</p>
                 </div>
             </div>
         );
@@ -566,37 +591,37 @@ const CompanyDashboard = () => {
     const applicantsPerInternship = internships.map(internship => ({
         name: internship.title || internship.position || 'Unnamed Internship',
         applicants: internship.applicants || 0,
-        color: '#3b82f6'
+        color: colors.blue
     }));
 
     // Prepare data for Interview Status pie chart
     const interviewStatusData = [
-        {
-            name: 'Scheduled',
-            value: applications.filter(app => app.status === 'Interview Scheduled').length,
-            color: '#f59e0b'
-        },
-        {
-            name: 'Completed',
-            value: applications.filter(app => app.status === 'Interview Completed' || app.status === 'Reviewed').length,
-            color: '#10b981'
-        },
-        {
-            name: 'Selected',
-            value: applications.filter(app => app.status === 'Hired' || app.status === 'Selected').length,
-            color: '#8b5cf6'
-        },
-        {
-            name: 'Rejected',
-            value: applications.filter(app => app.status === 'Rejected').length,
-            color: '#ef4444'
-        },
-        {
-            name: 'Pending',
-            value: applications.filter(app => app.status === 'Pending').length,
-            color: '#6b7280'
-        }
-    ].filter(item => item.value > 0);
+    {
+        name: 'Scheduled',
+        value: applications.filter(app => app.interview?.scheduled && !app.interview?.feedback).length,
+        color: '#f59e0b'
+    },
+    {
+        name: 'Completed',
+        value: applications.filter(app => app.interview?.feedback).length,
+        color: colors.blue
+    },
+    {
+        name: 'Selected',
+        value: applications.filter(app => app.status === 'accepted').length,
+        color: '#8b5cf6'
+    },
+    {
+        name: 'Rejected',
+        value: applications.filter(app => app.status === 'rejected').length,
+        color: '#ef4444'
+    },
+    {
+        name: 'Pending',
+        value: applications.filter(app => app.status === 'pending').length,
+        color: colors.gray
+    }
+].filter(item => item.value > 0);
 
     return (
         <div style={styles.container}>
@@ -607,12 +632,21 @@ const CompanyDashboard = () => {
                 }
                 
                 .primary-action:hover {
-                    background: #059669;
+                    background: ${colors.blueLight};
                 }
                 
                 .secondary-action:hover {
-                    background: #f9fafb;
+                    background: ${colors.whiteDark};
                 }
+                
+                .stat-card:hover {
+                    border-color: ${colors.blue};
+                }
+                
+                a:hover {
+                    color: ${colors.blueLight};
+                }
+                
                 @keyframes spin {
                     0% { transform: rotate(0deg); }
                     100% { transform: rotate(360deg); }
@@ -740,14 +774,9 @@ const CompanyDashboard = () => {
                                 Edit Profile
                             </button>
 
-                            {/* <button
-                                style={{...styles.actionButton, ...styles.primaryAction}}
-                                onClick={() => navigate("/company/jobs/post")}
-                                className="action-button primary-action"
-                            > */}
                             <button
                                 style={{ ...styles.actionButton, ...styles.primaryAction }}
-                                onClick={() => navigate("/company/internships/create")} // Updated path
+                                onClick={() => navigate("/company/internships/create")}
                                 className="action-button primary-action"
                             >
                                 <span style={styles.actionIcon}>
@@ -781,10 +810,6 @@ const CompanyDashboard = () => {
                                     month: 'long',
                                     year: 'numeric'
                                 })}</span>
-                                {/* <span>•</span>
-                                <span>{internships.length} Internships Posted</span>
-                                <span>•</span>
-                                <span>{applications.length} Total Applications</span> */}
                             </div>
                         )}
                     </div>
@@ -803,12 +828,12 @@ const CompanyDashboard = () => {
                         <div style={styles.statContent}>
                             <div style={styles.statValue}>{stat.value}</div>
                             <div style={styles.statLabel}>{stat.label}</div>
-                            <div style={{
+                            {/* <div style={{
                                 ...styles.statChange,
                                 ...(stat.change.startsWith('+') ? styles.positiveChange : styles.negativeChange)
-                            }}>
-                                {stat.change} from last month
-                            </div>
+                            }}> */}
+                                {/* {stat.change} from last month */}
+                            {/* </div> */}
                         </div>
                     </div>
                 ))}
@@ -821,28 +846,44 @@ const CompanyDashboard = () => {
                     {/* Left Column - Applicants per Internship */}
                     <div style={styles.card}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-                            <h3 style={{ color: "#2d3748" }}>Applicants per Internship</h3>
+                            <h3 style={{ color: colors.black }}>Applicants per Internship</h3>
                             <button
-                                style={{ fontSize: "0.875rem", color: "#10b981", background: "none", border: "none", cursor: "pointer", fontWeight: 500 }}
-                                onClick={() => navigate("/company/internships")}
-                            >
-                                View All →
-                            </button>
+    style={{
+        padding: "0.5rem 1rem",
+        background: colors.blue,
+        color: colors.white,
+        border: "none",
+        borderRadius: "6px",
+        fontSize: "0.875rem",
+        fontWeight: 500,
+        cursor: "pointer",
+        display: "flex",
+        alignItems: "center",
+        gap: "0.5rem",
+        transition: "all 0.2s ease"
+    }}
+    onClick={() => navigate("/company/internships")}
+    onMouseEnter={(e) => e.target.style.background = colors.blueLight}
+    onMouseLeave={(e) => e.target.style.background = colors.blue}
+>
+    View All
+    <span style={{ fontSize: "1rem" }}>→</span>
+</button>
                         </div>
                         <div style={styles.chartContainer}>
                             {applicantsPerInternship.length > 0 ? (
                                 <ResponsiveContainer width="100%" height="100%">
                                     <BarChart data={applicantsPerInternship}>
-                                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                                        <CartesianGrid strokeDasharray="3 3" stroke={colors.grayLighter} />
                                         <XAxis
                                             dataKey="name"
-                                            stroke="#6b7280"
+                                            stroke={colors.gray}
                                             angle={-45}
                                             textAnchor="end"
                                             height={60}
                                             fontSize={12}
                                         />
-                                        <YAxis stroke="#6b7280" />
+                                        <YAxis stroke={colors.gray} />
                                         <Tooltip
                                             formatter={(value) => [`${value} applicants`, 'Count']}
                                             labelFormatter={(label) => `Internship: ${label}`}
@@ -850,7 +891,7 @@ const CompanyDashboard = () => {
                                         <Bar
                                             dataKey="applicants"
                                             radius={[4, 4, 0, 0]}
-                                            fill="#3b82f6"
+                                            fill={colors.blue}
                                         >
                                             {applicantsPerInternship.map((entry, index) => (
                                                 <Cell key={`cell-${index}`} fill={entry.color} />
@@ -869,13 +910,29 @@ const CompanyDashboard = () => {
                     {/* Right Column - Interview Status */}
                     <div style={styles.card}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-                            <h3 style={{ color: "#2d3748" }}>Interview Status</h3>
+                            <h3 style={{ color: colors.black }}>Interview Status</h3>
                             <button
-                                style={{ fontSize: "0.875rem", color: "#10b981", background: "none", border: "none", cursor: "pointer", fontWeight: 500 }}
-                                onClick={() => navigate("/company/applications")}
-                            >
-                                View Details →
-                            </button>
+    style={{
+        padding: "0.5rem 1rem",
+        background: colors.blue,
+        color: colors.white,
+        border: "none",
+        borderRadius: "6px",
+        fontSize: "0.875rem",
+        fontWeight: 500,
+        cursor: "pointer",
+        display: "flex",
+        alignItems: "center",
+        gap: "0.5rem",
+        transition: "all 0.2s ease"
+    }}
+    onClick={() => navigate("/company/applications")}
+    onMouseEnter={(e) => e.target.style.background = colors.blueLight}
+    onMouseLeave={(e) => e.target.style.background = colors.blue}
+>
+    View Details
+    <span style={{ fontSize: "1rem" }}>→</span>
+</button>
                         </div>
                         <div style={styles.chartContainer}>
                             {interviewStatusData.length > 0 ? (
@@ -918,13 +975,29 @@ const CompanyDashboard = () => {
                     {/* Interview Calendar */}
                     <div style={styles.card}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-                            <h3 style={{ color: "#2d3748" }}>Interview Calendar</h3>
+                            <h3 style={{ color: colors.black }}>Interview Calendar</h3>
                             <button
-                                style={{ fontSize: "0.875rem", color: "#10b981", background: "none", border: "none", cursor: "pointer", fontWeight: 500 }}
-                                onClick={() => navigate("/company/interviews")}
-                            >
-                                Schedule Interview →
-                            </button>
+    style={{
+        padding: "0.5rem 1rem",
+        background: colors.blue,
+        color: colors.white,
+        border: "none",
+        borderRadius: "6px",
+        fontSize: "0.875rem",
+        fontWeight: 500,
+        cursor: "pointer",
+        display: "flex",
+        alignItems: "center",
+        gap: "0.5rem",
+        transition: "all 0.2s ease"
+    }}
+    onClick={() => navigate("/company/interviews")}
+    onMouseEnter={(e) => e.target.style.background = colors.blueLight}
+    onMouseLeave={(e) => e.target.style.background = colors.blue}
+>
+    Schedule Interview
+    <span style={{ fontSize: "1rem" }}>→</span>
+</button>
                         </div>
 
                         {(() => {
@@ -939,20 +1012,21 @@ const CompanyDashboard = () => {
                                         alignItems: 'center',
                                         marginBottom: '1rem',
                                         padding: '0.75rem',
-                                        background: '#f8fafc',
+                                        background: colors.whiteDark,
                                         borderRadius: '8px'
                                     }}>
-                                        <div style={{ fontSize: '1.125rem', fontWeight: 600, color: '#1f2937' }}>
+                                        <div style={{ fontSize: '1.125rem', fontWeight: 600, color: colors.black }}>
                                             {calendarData.monthName}
                                         </div>
                                         <div style={{ display: 'flex', gap: '0.5rem' }}>
                                             <button
                                                 style={{
                                                     padding: '0.25rem 0.5rem',
-                                                    background: '#f3f4f6',
+                                                    background: colors.whiteDarker,
                                                     border: 'none',
                                                     borderRadius: '4px',
-                                                    cursor: 'pointer'
+                                                    cursor: 'pointer',
+                                                    color: colors.black
                                                 }}
                                                 onClick={() => alert('Previous month')}
                                             >
@@ -961,10 +1035,11 @@ const CompanyDashboard = () => {
                                             <button
                                                 style={{
                                                     padding: '0.25rem 0.5rem',
-                                                    background: '#f3f4f6',
+                                                    background: colors.whiteDarker,
                                                     border: 'none',
                                                     borderRadius: '4px',
-                                                    cursor: 'pointer'
+                                                    cursor: 'pointer',
+                                                    color: colors.black
                                                 }}
                                                 onClick={() => alert('Next month')}
                                             >
@@ -983,28 +1058,28 @@ const CompanyDashboard = () => {
                                         <div style={{
                                             textAlign: 'center',
                                             padding: '0.75rem',
-                                            background: '#f0f9ff',
+                                            background: colors.blueLighter,
                                             borderRadius: '8px',
-                                            border: '1px solid #e0f2fe'
+                                            border: `1px solid ${colors.blueLighter}`
                                         }}>
-                                            <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0369a1' }}>
+                                            <div style={{ fontSize: '1.25rem', fontWeight: 700, color: colors.blue }}>
                                                 {calendarData.totalInterviews}
                                             </div>
-                                            <div style={{ fontSize: '0.75rem', color: '#0c4a6e', marginTop: '0.25rem' }}>
+                                            <div style={{ fontSize: '0.75rem', color: colors.black, marginTop: '0.25rem' }}>
                                                 Total Scheduled
                                             </div>
                                         </div>
                                         <div style={{
                                             textAlign: 'center',
                                             padding: '0.75rem',
-                                            background: '#fef3c7',
+                                            background: colors.blueLighter,
                                             borderRadius: '8px',
-                                            border: '1px solid #fde68a'
+                                            border: `1px solid ${colors.blueLighter}`
                                         }}>
-                                            <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#92400e' }}>
+                                            <div style={{ fontSize: '1.25rem', fontWeight: 700, color: colors.blue }}>
                                                 {calendarData.upcomingInterviews}
                                             </div>
-                                            <div style={{ fontSize: '0.75rem', color: '#78350f', marginTop: '0.25rem' }}>
+                                            <div style={{ fontSize: '0.75rem', color: colors.black, marginTop: '0.25rem' }}>
                                                 Upcoming
                                             </div>
                                         </div>
@@ -1024,7 +1099,7 @@ const CompanyDashboard = () => {
                                                     textAlign: 'center',
                                                     fontSize: '0.75rem',
                                                     fontWeight: 600,
-                                                    color: '#6b7280',
+                                                    color: colors.gray,
                                                     padding: '0.25rem'
                                                 }}>
                                                     {day}
@@ -1050,16 +1125,16 @@ const CompanyDashboard = () => {
                                                         borderRadius: '6px',
                                                         fontSize: '0.875rem',
                                                         fontWeight: dayData.isToday ? 600 : 400,
-                                                        background: dayData.isToday ? '#10b981' :
-                                                            dayData.hasInterview ? (dayData.isPast ? '#fee2e2' : '#dbeafe') :
+                                                        background: dayData.isToday ? colors.blue :
+                                                            dayData.hasInterview ? (dayData.isPast ? '#fee2e2' : colors.blueLighter) :
                                                                 dayData.day === null ? 'transparent' :
-                                                                    dayData.isPast ? '#f9fafb' : '#ffffff',
-                                                        color: dayData.isToday ? 'white' :
-                                                            dayData.hasInterview ? (dayData.isPast ? '#991b1b' : '#1d4ed8') :
-                                                                dayData.isPast ? '#9ca3af' : '#374151',
-                                                        border: dayData.hasInterview ? `2px solid ${dayData.isPast ? '#fca5a5' : '#93c5fd'}` :
+                                                                    dayData.isPast ? colors.whiteDark : colors.white,
+                                                        color: dayData.isToday ? colors.white :
+                                                            dayData.hasInterview ? (dayData.isPast ? '#991b1b' : colors.blue) :
+                                                                dayData.isPast ? colors.grayLight : colors.black,
+                                                        border: dayData.hasInterview ? `2px solid ${dayData.isPast ? '#fca5a5' : colors.blueLight}` :
                                                             dayData.isToday ? 'none' :
-                                                                dayData.day === null ? 'none' : '1px solid #e5e7eb',
+                                                                dayData.day === null ? 'none' : `1px solid ${colors.grayLighter}`,
                                                         cursor: dayData.day ? 'pointer' : 'default',
                                                         position: 'relative'
                                                     }}
@@ -1087,13 +1162,13 @@ const CompanyDashboard = () => {
                                                                             width: '4px',
                                                                             height: '4px',
                                                                             borderRadius: '50%',
-                                                                            background: dayData.isPast ? '#dc2626' : '#2563eb'
+                                                                            background: dayData.isPast ? '#dc2626' : colors.blue
                                                                         }} />
                                                                     ))}
                                                                     {dayData.interviewCount > 3 && (
                                                                         <div style={{
                                                                             fontSize: '0.5rem',
-                                                                            color: dayData.isPast ? '#dc2626' : '#2563eb',
+                                                                            color: dayData.isPast ? '#dc2626' : colors.blue,
                                                                             fontWeight: 600
                                                                         }}>
                                                                             +{dayData.interviewCount - 3}
@@ -1114,14 +1189,14 @@ const CompanyDashboard = () => {
                                         justifyContent: 'center',
                                         gap: '1rem',
                                         fontSize: '0.75rem',
-                                        color: '#6b7280'
+                                        color: colors.gray
                                     }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                                            <div style={{ width: '12px', height: '12px', background: '#10b981', borderRadius: '2px' }} />
+                                            <div style={{ width: '12px', height: '12px', background: colors.blue, borderRadius: '2px' }} />
                                             <span>Today</span>
                                         </div>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                                            <div style={{ width: '12px', height: '12px', background: '#dbeafe', border: '1px solid #93c5fd', borderRadius: '2px' }} />
+                                            <div style={{ width: '12px', height: '12px', background: colors.blueLighter, border: `1px solid ${colors.blueLight}`, borderRadius: '2px' }} />
                                             <span>Upcoming Interview</span>
                                         </div>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
@@ -1137,13 +1212,29 @@ const CompanyDashboard = () => {
                     {/* Recent Applications Preview */}
                     <div style={styles.card}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-                            <h3 style={{ color: "#2d3748" }}>Recent Applications</h3>
+                            <h3 style={{ color: colors.black }}>Recent Applications</h3>
                             <button
-                                style={{ fontSize: "0.875rem", color: "#10b981", background: "none", border: "none", cursor: "pointer", fontWeight: 500 }}
-                                onClick={() => navigate("/company/applications")}
-                            >
-                                View All →
-                            </button>
+    style={{
+        padding: "0.5rem 1rem",
+        background: colors.blue,
+        color: colors.white,
+        border: "none",
+        borderRadius: "6px",
+        fontSize: "0.875rem",
+        fontWeight: 500,
+        cursor: "pointer",
+        display: "flex",
+        alignItems: "center",
+        gap: "0.5rem",
+        transition: "all 0.2s ease"
+    }}
+    onClick={() => navigate("/company/applications")}
+    onMouseEnter={(e) => e.target.style.background = colors.blueLight}
+    onMouseLeave={(e) => e.target.style.background = colors.blue}
+>
+    View All
+    <span style={{ fontSize: "1rem" }}>→</span>
+</button>
                         </div>
                         {applications.length > 0 ? (
                             <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
@@ -1153,26 +1244,26 @@ const CompanyDashboard = () => {
                                         alignItems: 'center',
                                         justifyContent: 'space-between',
                                         padding: '0.75rem 0',
-                                        borderBottom: index < 4 ? '1px solid #f3f4f6' : 'none'
+                                        borderBottom: index < 4 ? `1px solid ${colors.grayLighter}` : 'none'
                                     }}>
                                         <div>
-                                            <div style={{ fontWeight: 500, fontSize: '0.875rem' }}>
+                                            <div style={{ fontWeight: 500, fontSize: '0.875rem', color: colors.black }}>
                                                 {app.candidateName || app.candidate || 'Unknown Candidate'}
                                             </div>
-                                            <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                                            <div style={{ fontSize: '0.75rem', color: colors.gray }}>
                                                 {app.position}
                                             </div>
                                         </div>
                                         <div style={{
                                             padding: '0.25rem 0.5rem',
                                             background: app.status === 'Pending' ? '#fef3c7' :
-                                                app.status === 'Interview Scheduled' ? '#f0f9ff' :
+                                                app.status === 'Interview Scheduled' ? colors.blueLighter :
                                                     app.status === 'Hired' ? '#d1fae5' :
-                                                        app.status === 'Rejected' ? '#fee2e2' : '#f3f4f6',
+                                                        app.status === 'Rejected' ? '#fee2e2' : colors.whiteDark,
                                             color: app.status === 'Pending' ? '#92400e' :
-                                                app.status === 'Interview Scheduled' ? '#0369a1' :
+                                                app.status === 'Interview Scheduled' ? colors.blue :
                                                     app.status === 'Hired' ? '#065f46' :
-                                                        app.status === 'Rejected' ? '#991b1b' : '#6b7280',
+                                                        app.status === 'Rejected' ? '#991b1b' : colors.black,
                                             borderRadius: '4px',
                                             fontSize: '0.75rem',
                                             fontWeight: 500
@@ -1195,8 +1286,8 @@ const CompanyDashboard = () => {
             <div style={{
                 marginTop: "3rem",
                 paddingTop: "2rem",
-                borderTop: "1px solid #e5e7eb",
-                color: "#6b7280",
+                borderTop: `1px solid ${colors.grayLighter}`,
+                color: colors.gray,
                 fontSize: "0.875rem",
             }}>
                 <div style={{
@@ -1208,36 +1299,37 @@ const CompanyDashboard = () => {
                 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "2rem" }}>
                         <div>
-                            <div style={{ fontWeight: 600, color: "#374151", marginBottom: "0.25rem" }}>
+                            <div style={{ fontWeight: 600, color: colors.black, marginBottom: "0.25rem" }}>
                                 {companyData?.companyName || "Your Company"}
                             </div>
-                            <div style={{ fontSize: "0.75rem" }}>
+                            <div style={{ fontSize: "0.75rem", color: colors.gray }}>
                                 Company Dashboard • v2.1.0
                             </div>
                         </div>
                         <div style={{ display: "flex", gap: "1.5rem" }}>
-                            <a href="#" style={{ color: "#6b7280", textDecoration: "none", fontSize: "0.75rem" }}>
+                            <a href="#" style={{ color: colors.gray, textDecoration: "none", fontSize: "0.75rem" }}>
                                 Privacy Policy
                             </a>
-                            <a href="#" style={{ color: "#6b7280", textDecoration: "none", fontSize: "0.75rem" }}>
+                            <a href="#" style={{ color: colors.gray, textDecoration: "none", fontSize: "0.75rem" }}>
                                 Terms of Service
                             </a>
-                            <a href="#" style={{ color: "#6b7280", textDecoration: "none", fontSize: "0.75rem" }}>
+                            <a href="#" style={{ color: colors.gray, textDecoration: "none", fontSize: "0.75rem" }}>
                                 Help Center
                             </a>
                         </div>
                     </div>
 
                     <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-                        <div style={{ fontSize: "0.75rem" }}>
+                        <div style={{ fontSize: "0.75rem", color: colors.gray }}>
                             © {new Date().getFullYear()} CareerSync. All rights reserved.
                         </div>
                         <div style={{
                             padding: "0.25rem 0.75rem",
-                            background: "#f3f4f6",
+                            background: colors.whiteDark,
                             borderRadius: "6px",
                             fontSize: "0.75rem",
                             fontWeight: 500,
+                            color: colors.gray
                         }}>
                             Last updated: {new Date().toLocaleDateString()}
                         </div>

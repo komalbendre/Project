@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Modal from "../components/Modal";
 
@@ -23,6 +23,16 @@ const CareerPaths = () => {
     searchTerm: ""
   });
 
+  // Pagination state
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalItems: 0,
+    itemsPerPage: 12,
+    hasNextPage: false,
+    hasPrevPage: false
+  });
+
   // State for real user data
   const [userData, setUserData] = useState({
     name: "",
@@ -36,13 +46,12 @@ const CareerPaths = () => {
   // State for dynamic data from backend
   const [internships, setInternships] = useState([]);
   const [courses, setCourses] = useState([]);
-  const [jobs, setJobs] = useState([]);
 
   // State for selected item details
   const [selectedItem, setSelectedItem] = useState(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
-  // Mock AI recommendations for roadmap and skills
+  // Keep only the skills recommendations mock data
   const [mockRecommendations, setMockRecommendations] = useState({
     skills: {
       current: [],
@@ -54,19 +63,7 @@ const CareerPaths = () => {
         { skill: "Testing (Jest, Cypress)", priority: "medium", reason: "Essential for quality code" },
         { skill: "System Design", priority: "low", reason: "For senior roles" },
       ],
-    },
-    roadmap: {
-      "short-term": [
-        { month: "Month 1-3", goal: "Master TypeScript", activities: ["Complete TS course", "Convert 2 projects to TS"] },
-        { month: "Month 4-6", goal: "Learn Next.js", activities: ["Build portfolio with Next.js", "Deploy 3 projects"] },
-        { month: "Month 7-9", goal: "Improve Testing", activities: ["Learn Jest & Cypress", "Add tests to existing projects"] },
-      ],
-      "mid-term": [
-        { month: "Year 1", goal: "Senior Frontend Developer", activities: ["Lead small projects", "Mentor juniors", "System design"] },
-        { month: "Year 2", goal: "Full Stack Transition", activities: ["Learn backend (Node.js)", "Database design", "DevOps basics"] },
-        { month: "Year 3", goal: "Tech Lead", activities: ["Architecture decisions", "Team leadership", "Project management"] },
-      ],
-    },
+    }
   });
 
   // Helper functions for data transformation
@@ -120,33 +117,33 @@ const CareerPaths = () => {
     return "Check Requirements";
   };
 
-  // Fetch internships from backend
-  const fetchInternships = async () => {
+  // Fetch internships from backend with pagination
+  const fetchInternships = async (page = pagination.currentPage) => {
     try {
       setFetchError("");
-      
+
       // Build query params based on active filters
       const params = new URLSearchParams();
-      
+
       // Add pagination
-      params.append('page', 1);
-      params.append('limit', 50);
-      
+      params.append('page', page);
+      params.append('limit', pagination.itemsPerPage);
+
       // Search term
       if (filterOptions.searchTerm) {
         params.append('search', filterOptions.searchTerm);
       }
-      
+
       // Location filter
       if (filterOptions.location) {
         params.append('location', filterOptions.location);
       }
-      
+
       // Experience level filter
       if (filterOptions.experienceLevel) {
         params.append('experienceLevel', filterOptions.experienceLevel);
       }
-      
+
       // Type filter (remote/hybrid/onsite)
       if (activeFilters.includes('Remote')) {
         params.append('type', 'remote');
@@ -155,9 +152,9 @@ const CareerPaths = () => {
       } else if (activeFilters.includes('Onsite')) {
         params.append('type', 'onsite');
       }
-      
+
       // Department/Skills filter - pass as search
-      const skillFilters = activeFilters.filter(f => 
+      const skillFilters = activeFilters.filter(f =>
         ['React', 'JavaScript', 'Node.js', 'TypeScript', 'Python', 'Java'].includes(f)
       );
       if (skillFilters.length > 0) {
@@ -167,23 +164,23 @@ const CareerPaths = () => {
           params.append('search', skillFilters.join(' '));
         }
       }
-      
+
       const response = await axios.get(`http://localhost:5000/api/internships?${params.toString()}`);
-      
+
       if (response.data.success) {
         // Filter paid/unpaid on frontend
         let filteredData = response.data.data;
-        
+
         if (filterOptions.stipendType === "paid") {
-          filteredData = filteredData.filter(internship => 
+          filteredData = filteredData.filter(internship =>
             internship.stipend && internship.stipend.isPaid === true
           );
         } else if (filterOptions.stipendType === "unpaid") {
-          filteredData = filteredData.filter(internship => 
+          filteredData = filteredData.filter(internship =>
             !internship.stipend || !internship.stipend.isPaid || internship.stipend.amount === 0
           );
         }
-        
+
         const transformedInternships = filteredData.map(internship => ({
           id: internship._id,
           title: internship.title,
@@ -216,6 +213,28 @@ const CareerPaths = () => {
         }));
 
         setInternships(transformedInternships);
+        
+        // Update pagination info from response headers or data
+        if (response.data.pagination) {
+          setPagination({
+            currentPage: response.data.pagination.currentPage || page,
+            totalPages: response.data.pagination.totalPages || 1,
+            totalItems: response.data.pagination.totalItems || transformedInternships.length,
+            itemsPerPage: pagination.itemsPerPage,
+            hasNextPage: response.data.pagination.hasNextPage || false,
+            hasPrevPage: response.data.pagination.hasPrevPage || false
+          });
+        } else {
+          // If no pagination info from backend, set based on data length
+          setPagination(prev => ({
+            ...prev,
+            currentPage: page,
+            totalPages: Math.ceil(transformedInternships.length / prev.itemsPerPage) || 1,
+            totalItems: transformedInternships.length,
+            hasNextPage: transformedInternships.length === prev.itemsPerPage,
+            hasPrevPage: page > 1
+          }));
+        }
       }
     } catch (error) {
       console.error("Error fetching internships:", error);
@@ -251,7 +270,7 @@ const CareerPaths = () => {
     }
   };
 
-  // Fetch courses (mock for now)
+  // Keep courses as mock data (as requested)
   const fetchCourses = async () => {
     try {
       setCourses([
@@ -309,68 +328,6 @@ const CareerPaths = () => {
     }
   };
 
-  // Fetch jobs (mock for now)
-  const fetchJobs = async () => {
-    try {
-      setJobs([
-        {
-          id: 1,
-          title: "Senior Frontend Developer",
-          company: "Google",
-          match: 92,
-          salary: "$140k - $180k",
-          skillsMatch: ["React", "JavaScript", "TypeScript"],
-          skillsToLearn: ["GraphQL", "AWS"],
-          timeline: "3-6 months",
-          description: "Lead frontend development for core products with a team of engineers",
-          location: "Remote/Hybrid",
-          experience: "5+ years",
-        },
-        {
-          id: 2,
-          title: "Full Stack Developer",
-          company: "Microsoft",
-          match: 85,
-          salary: "$120k - $160k",
-          skillsMatch: ["React", "Node.js", "JavaScript"],
-          skillsToLearn: ["Azure", "C#"],
-          timeline: "2-4 months",
-          description: "Build end-to-end features for enterprise solutions",
-          location: "Seattle, WA",
-          experience: "3+ years",
-        },
-        {
-          id: 3,
-          title: "React Developer",
-          company: "Meta",
-          match: 88,
-          salary: "$130k - $170k",
-          skillsMatch: ["React", "JavaScript", "CSS"],
-          skillsToLearn: ["React Native", "Next.js"],
-          timeline: "1-3 months",
-          description: "Create immersive user experiences for social platforms",
-          location: "Remote",
-          experience: "2+ years",
-        },
-        {
-          id: 4,
-          title: "Frontend Tech Lead",
-          company: "Amazon",
-          match: 78,
-          salary: "$160k - $220k",
-          skillsMatch: ["React", "JavaScript", "Leadership"],
-          skillsToLearn: ["System Design", "Microservices"],
-          timeline: "6-12 months",
-          description: "Lead frontend architecture and mentor junior developers",
-          location: "New York, NY",
-          experience: "7+ years",
-        },
-      ]);
-    } catch (error) {
-      console.error("Error fetching jobs:", error);
-    }
-  };
-
   const openCareerModal = (career) => {
     setSelectedCareerPath(career);
     setIsModalOpen(true);
@@ -386,26 +343,89 @@ const CareerPaths = () => {
     setSelectedItem(null);
   };
 
+  // Pagination handlers
+  const handleNextPage = () => {
+    if (pagination.hasNextPage) {
+      const nextPage = pagination.currentPage + 1;
+      setPagination(prev => ({ ...prev, currentPage: nextPage }));
+      fetchInternships(nextPage);
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (pagination.hasPrevPage) {
+      const prevPage = pagination.currentPage - 1;
+      setPagination(prev => ({ ...prev, currentPage: prevPage }));
+      fetchInternships(prevPage);
+    }
+  };
+
+  const handlePageChange = (page) => {
+    setPagination(prev => ({ ...prev, currentPage: page }));
+    fetchInternships(page);
+  };
+
   const getCareerSuggestions = async () => {
-    if (!userData.skills || userData.skills.length === 0) {
-      alert("Add skills to your profile to get AI suggestions");
+    // Check if user has skills
+    const hasSkills = userData.skills && userData.skills.length > 0;
+
+    if (!hasSkills) {
+      alert("Please add skills to your profile to get AI-powered career suggestions");
       return;
     }
 
     try {
       setAiLoading(true);
-      const res = await axios.post("http://localhost:5000/api/career-suggest", {
-        skills: userData.skills
-      });
-      setAiResults(res.data.slice(0, 3));
-      setShowAiModal(true);
+      setFetchError("");
+
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        alert("Please log in to get AI career suggestions");
+        return;
+      }
+
+      // Call the AI endpoint
+      const response = await axios.post(
+        "http://localhost:5000/api/ai/career-suggestions",
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      console.log("Full API Response:", response.data);
+
+      if (response.data.success) {
+        const aiData = response.data.data;
+        console.log("AI Data received:", aiData);
+        
+        setAiResults(aiData);
+        setShowAiModal(true);
+      } else {
+        throw new Error(response.data.message || "Failed to get suggestions");
+      }
+
     } catch (err) {
       console.error("Error fetching AI career suggestions:", err);
-      alert("Failed to fetch suggestions. Try again later.");
+      alert("Failed to get AI suggestions. Please try again.");
     } finally {
       setAiLoading(false);
     }
   };
+
+  useEffect(() => {
+    console.log("🔥 aiResults changed:", aiResults);
+    console.log("🔥 aiResults length:", aiResults?.length);
+    console.log("🔥 First result if exists:", aiResults?.[0]);
+  }, [aiResults]);
+
+  useEffect(() => {
+    console.log("🔴 showAiModal changed to:", showAiModal);
+  }, [showAiModal]);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -430,9 +450,8 @@ const CareerPaths = () => {
             skills: { ...prev.skills, current: defaultData.skills }
           }));
 
-          await fetchInternships();
+          await fetchInternships(1);
           await fetchCourses();
-          await fetchJobs();
           await fetchCareerPaths();
           setLoading(false);
           return;
@@ -460,9 +479,9 @@ const CareerPaths = () => {
             skills: { ...prev.skills, current: profile.technicalSkills || [] }
           }));
 
-          await fetchInternships();
+          await fetchInternships(1);
           await fetchCourses();
-          await fetchJobs();
+          await fetchCareerPaths();
         }
 
         setTimeout(() => setLoading(false), 1500);
@@ -483,9 +502,9 @@ const CareerPaths = () => {
           skills: { ...prev.skills, current: defaultData.skills }
         }));
 
-        await fetchInternships();
+        await fetchInternships(1);
         await fetchCourses();
-        await fetchJobs();
+        await fetchCareerPaths();
         setTimeout(() => setLoading(false), 1500);
       }
     };
@@ -496,7 +515,7 @@ const CareerPaths = () => {
   // Refetch internships when filters change
   useEffect(() => {
     if (selectedCategory === "internships" && !loading) {
-      fetchInternships();
+      fetchInternships(1); // Reset to first page when filters change
     }
   }, [
     filterOptions.searchTerm,
@@ -515,7 +534,6 @@ const CareerPaths = () => {
 
   const handleApply = (item) => {
     closeDetailsModal();
-    // Navigate to the apply page with the internship ID
     navigate(`/apply/${item.id}`);
   };
 
@@ -544,28 +562,10 @@ const CareerPaths = () => {
   ];
 
   const getRecommendations = () => {
-    if (showAiModal && selectedCategory === "career-paths") {
-      return getAiCareerCards();
-    }
     if (selectedCategory === "internships") return internships;
     if (selectedCategory === "courses") return courses;
     if (selectedCategory === "career-paths") return careerPaths;
     return [];
-  };
-
-  const getAiCareerCards = () => {
-    return aiResults.map((career, index) => ({
-      id: `ai-${index}`,
-      title: career.title,
-      company: "AI Recommended",
-      match: career.match,
-      description: career.reason,
-      skillsMatch: userData.skills.slice(0, 3),
-      skillsToLearn: career.missingSkills,
-      timeline: "6–12 months",
-      experience: userData.experienceLevel,
-      location: "Flexible",
-    }));
   };
 
   const getFilteredRecommendations = () => {
@@ -781,24 +781,6 @@ const CareerPaths = () => {
       fontSize: "0.875rem",
       fontWeight: 500,
     },
-    aiAnalysis: {
-      background: "#f0f9ff",
-      padding: "1.5rem",
-      borderRadius: "16px",
-      borderLeft: "4px solid #3b82f6",
-    },
-    analysisTitle: {
-      fontWeight: 600,
-      color: "#1e40af",
-      marginBottom: "1rem",
-      display: "flex",
-      alignItems: "center",
-      gap: "0.5rem",
-    },
-    analysisText: {
-      color: "#374151",
-      lineHeight: 1.6,
-    },
     mainSection: {
       background: "white",
       borderRadius: "20px",
@@ -982,6 +964,55 @@ const CareerPaths = () => {
       fontWeight: 600,
       cursor: "pointer",
       transition: "all 0.2s ease",
+    },
+    // Pagination styles
+    paginationContainer: {
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      gap: "1rem",
+      padding: "1.5rem",
+      borderTop: "1px solid #edf2f7",
+    },
+    paginationButton: {
+      padding: "0.5rem 1rem",
+      background: "#f1f5f9",
+      border: "none",
+      borderRadius: "8px",
+      fontSize: "0.875rem",
+      color: "#4a5568",
+      cursor: "pointer",
+      transition: "all 0.2s ease",
+      fontWeight: 500,
+    },
+    paginationButtonDisabled: {
+      opacity: 0.5,
+      cursor: "not-allowed",
+    },
+    paginationInfo: {
+      fontSize: "0.875rem",
+      color: "#4a5568",
+      fontWeight: 500,
+    },
+    paginationPages: {
+      display: "flex",
+      gap: "0.5rem",
+      alignItems: "center",
+    },
+    paginationPageButton: {
+      padding: "0.5rem 0.75rem",
+      background: "#f1f5f9",
+      border: "none",
+      borderRadius: "6px",
+      fontSize: "0.875rem",
+      color: "#4a5568",
+      cursor: "pointer",
+      transition: "all 0.2s ease",
+      minWidth: "36px",
+    },
+    paginationActivePage: {
+      background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+      color: "white",
     },
     roadmapSection: {
       background: "white",
@@ -1181,6 +1212,16 @@ const CareerPaths = () => {
       background: #e2e8f0;
       transform: translateY(-1px);
     }
+    
+    .pagination-button:hover:not(:disabled) {
+      background: #e2e8f0;
+      transform: translateY(-1px);
+    }
+    
+    .pagination-page-button:hover:not(.active) {
+      background: #e2e8f0;
+      transform: translateY(-1px);
+    }
   `;
 
   if (loading) {
@@ -1197,6 +1238,37 @@ const CareerPaths = () => {
       </div>
     );
   }
+
+  // Generate page numbers for pagination
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisiblePages = 5;
+    const currentPage = pagination.currentPage;
+    const totalPages = pagination.totalPages;
+
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) pages.push(i);
+        pages.push('...');
+        pages.push(totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        pages.push(1);
+        pages.push('...');
+        for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i);
+      } else {
+        pages.push(1);
+        pages.push('...');
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) pages.push(i);
+        pages.push('...');
+        pages.push(totalPages);
+      }
+    }
+    return pages;
+  };
 
   return (
     <div style={styles.container}>
@@ -1250,25 +1322,6 @@ const CareerPaths = () => {
                   Add skills in your profile
                 </span>
               )}
-            </div>
-          </div>
-          <div style={{ width: "280px" }}>
-            <div style={styles.aiAnalysis}>
-              <h3 style={styles.analysisTitle}>AI Analysis</h3>
-              <p style={styles.analysisText}>
-                {userData.skills.length > 0 ? (
-                  <>
-                    Based on your skills in <strong>{userData.skills.slice(0, 3).join(", ")}</strong>,
-                    the AI recommends focusing on <strong>TypeScript</strong> and <strong>Next.js</strong>
-                    to advance your career as a {userData.currentRole}.
-                  </>
-                ) : (
-                  <>
-                    Complete your profile by adding your skills and experience to get
-                    personalized career recommendations tailored to your background.
-                  </>
-                )}
-              </p>
             </div>
           </div>
         </div>
@@ -1528,7 +1581,7 @@ const CareerPaths = () => {
                 <button
                   onClick={() => {
                     setFetchError("");
-                    fetchInternships();
+                    fetchInternships(1);
                   }}
                   style={{
                     marginTop: "1rem",
@@ -1548,9 +1601,70 @@ const CareerPaths = () => {
             </div>
           )}
         </div>
+
+        {/* Pagination - Only show for internships tab */}
+        {selectedCategory === "internships" && internships.length > 0 && (
+          <div style={styles.paginationContainer}>
+            <button
+              onClick={handlePrevPage}
+              disabled={!pagination.hasPrevPage}
+              style={{
+                ...styles.paginationButton,
+                ...(!pagination.hasPrevPage && styles.paginationButtonDisabled)
+              }}
+              className="pagination-button"
+            >
+              ← Previous
+            </button>
+            
+            <div style={styles.paginationPages}>
+              {getPageNumbers().map((page, index) => (
+                page === '...' ? (
+                  <span key={`ellipsis-${index}`} style={styles.paginationInfo}>...</span>
+                ) : (
+                  <button
+                    key={`page-${page}`}
+                    onClick={() => handlePageChange(page)}
+                    style={{
+                      ...styles.paginationPageButton,
+                      ...(pagination.currentPage === page && styles.paginationActivePage)
+                    }}
+                    className={`pagination-page-button ${pagination.currentPage === page ? 'active' : ''}`}
+                  >
+                    {page}
+                  </button>
+                )
+              ))}
+            </div>
+
+            <button
+              onClick={handleNextPage}
+              disabled={!pagination.hasNextPage}
+              style={{
+                ...styles.paginationButton,
+                ...(!pagination.hasNextPage && styles.paginationButtonDisabled)
+              }}
+              className="pagination-button"
+            >
+              Next →
+            </button>
+          </div>
+        )}
+
+        {/* Items per page and total count info */}
+        {selectedCategory === "internships" && internships.length > 0 && (
+          <div style={{
+            textAlign: "center",
+            padding: "0 1.5rem 1.5rem",
+            fontSize: "0.875rem",
+            color: "#94a3b8"
+          }}>
+            Showing {((pagination.currentPage - 1) * pagination.itemsPerPage) + 1} - {Math.min(pagination.currentPage * pagination.itemsPerPage, pagination.totalItems)} of {pagination.totalItems} internships
+          </div>
+        )}
       </div>
 
-      {/* Skill Recommendations */}
+      {/* Skill Recommendations - Keep this mock data */}
       <div style={{
         ...styles.roadmapSection,
         background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
@@ -1760,54 +1874,265 @@ const CareerPaths = () => {
       </Modal>
 
       {/* AI Suggestions Modal */}
-      {showAiModal && (
-        <Modal onClose={() => setShowAiModal(false)}>
-          <h2 style={{ marginBottom: "1rem", color: "#2d3748", fontSize: "1.25rem" }}>Top Career Suggestions</h2>
-          {aiResults.length > 0 ? (
-            aiResults.map((career, index) => (
-              <div key={index} style={{
-                padding: "1rem",
-                borderBottom: index !== aiResults.length - 1 ? "1px solid #e2e8f0" : "none"
-              }}>
-                <h3 style={{ fontWeight: 600, color: "#667eea", fontSize: "1rem" }}>{career.title}</h3>
-                {career.company && <p style={{ fontSize: "0.875rem" }}><strong>Company:</strong> {career.company}</p>}
-                {career.skillsMatch && (
-                  <p style={{ fontSize: "0.875rem" }}>
-                    <strong>Matched Skills:</strong> {career.skillsMatch.join(", ")}
-                  </p>
-                )}
-                {career.skillsToLearn && (
-                  <p style={{ fontSize: "0.875rem" }}>
-                    <strong>Skills to Learn:</strong> {career.skillsToLearn.join(", ")}
-                  </p>
-                )}
-                {career.matchScore && (
-                  <p style={{ fontSize: "0.875rem" }}><strong>Match Score:</strong> {career.matchScore}%</p>
-                )}
-              </div>
-            ))
+      <Modal 
+        isOpen={showAiModal === true}
+        onClose={() => setShowAiModal(false)}
+      >
+        <div style={{ padding: "2rem", maxWidth: "900px", width: "100%", maxHeight: "80vh", overflowY: "auto" }}>
+          <div style={{ 
+            display: "flex", 
+            justifyContent: "space-between", 
+            alignItems: "center", 
+            marginBottom: "1.5rem",
+            borderBottom: "2px solid #e0e7ff",
+            paddingBottom: "1rem"
+          }}>
+            <h2 style={{ 
+              fontSize: "1.8rem", 
+              fontWeight: 700,
+              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              margin: 0
+            }}>
+              AI Career Suggestions
+            </h2>
+            <span style={{
+              background: "#e0e7ff",
+              color: "#3730a3",
+              padding: "0.35rem 1rem",
+              borderRadius: "20px",
+              fontSize: "0.85rem",
+              fontWeight: 600
+            }}>
+              {aiResults?.length || 0} matches found
+            </span>
+          </div>
+
+          {aiLoading ? (
+            <div style={{ textAlign: "center", padding: "3rem" }}>
+              <div style={{
+                width: "50px",
+                height: "50px",
+                border: "5px solid #f3f3f3",
+                borderTop: "5px solid #667eea",
+                borderRadius: "50%",
+                animation: "spin 1s linear infinite",
+                margin: "0 auto 1rem"
+              }}></div>
+              <p>AI is analyzing your skills...</p>
+            </div>
+          ) : aiResults && aiResults.length > 0 ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+              {aiResults.map((career, index) => (
+                <div
+                  key={index}
+                  style={{
+                    padding: "1.5rem",
+                    background: index === 0 ? "#f5f3ff" : "white",
+                    borderRadius: "12px",
+                    border: index === 0 ? "2px solid #667eea" : "1px solid #e2e8f0",
+                    position: "relative",
+                    transition: "all 0.2s ease"
+                  }}
+                >
+                  {index === 0 && (
+                    <span style={{
+                      position: "absolute",
+                      top: "-12px",
+                      left: "20px",
+                      background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                      color: "white",
+                      padding: "0.25rem 1.2rem",
+                      borderRadius: "20px",
+                      fontSize: "0.8rem",
+                      fontWeight: 600,
+                      letterSpacing: "0.5px"
+                    }}>
+                      🏆 BEST MATCH
+                    </span>
+                  )}
+
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1rem" }}>
+                    <div style={{ flex: 1 }}>
+                      <h3 style={{ fontSize: "1.4rem", fontWeight: 700, color: "#2d3748", marginBottom: "0.5rem" }}>
+                        {career.title}
+                      </h3>
+                      <p style={{ fontSize: "1rem", color: "#4a5568", lineHeight: "1.5" }}>
+                        {career.reason}
+                      </p>
+                    </div>
+                    <div style={{
+                      background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                      color: "white",
+                      padding: "0.75rem 1.25rem",
+                      borderRadius: "40px",
+                      fontSize: "1.5rem",
+                      fontWeight: 700,
+                      minWidth: "100px",
+                      textAlign: "center",
+                      marginLeft: "1.5rem"
+                    }}>
+                      {career.match}%
+                    </div>
+                  </div>
+
+                  <div style={{ 
+                    display: "grid", 
+                    gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", 
+                    gap: "1rem", 
+                    marginBottom: "1.5rem",
+                    background: "#f8fafc",
+                    padding: "1rem",
+                    borderRadius: "8px"
+                  }}>
+                    {career.salary && (
+                      <div>
+                        <span style={{ fontSize: "0.8rem", color: "#64748b", display: "block", fontWeight: 600 }}>💰 SALARY</span>
+                        <span style={{ fontSize: "1.1rem", fontWeight: 700, color: "#2d3748" }}>{career.salary}</span>
+                      </div>
+                    )}
+                    {career.growth && (
+                      <div>
+                        <span style={{ fontSize: "0.8rem", color: "#64748b", display: "block", fontWeight: 600 }}>📈 GROWTH</span>
+                        <span style={{ fontSize: "1.1rem", fontWeight: 700, color: "#2d3748" }}>{career.growth}</span>
+                      </div>
+                    )}
+                    {career.timeline && (
+                      <div>
+                        <span style={{ fontSize: "0.8rem", color: "#64748b", display: "block", fontWeight: 600 }}>⏱️ TIMELINE</span>
+                        <span style={{ fontSize: "1.1rem", fontWeight: 700, color: "#2d3748" }}>{career.timeline}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {career.missingSkills && career.missingSkills.length > 0 && (
+                    <div style={{ marginBottom: "1rem" }}>
+                      <p style={{ fontSize: "1rem", fontWeight: 600, color: "#2d3748", marginBottom: "0.75rem" }}>
+                        🎯 Skills to Learn:
+                      </p>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem" }}>
+                        {career.missingSkills.map((skill, idx) => (
+                          <span
+                            key={idx}
+                            style={{
+                              background: "#fee2e2",
+                              color: "#b91c1c",
+                              padding: "0.5rem 1rem",
+                              borderRadius: "30px",
+                              fontSize: "0.9rem",
+                              fontWeight: 500,
+                              border: "1px solid #fecaca"
+                            }}
+                          >
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {career.recommendedCourses && career.recommendedCourses.length > 0 && (
+                    <div style={{ marginBottom: "1rem" }}>
+                      <p style={{ fontSize: "1rem", fontWeight: 600, color: "#2d3748", marginBottom: "0.75rem" }}>
+                        📚 Recommended Courses:
+                      </p>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem" }}>
+                        {career.recommendedCourses.map((course, idx) => (
+                          <span
+                            key={idx}
+                            style={{
+                              background: "#dbeafe",
+                              color: "#1e40af",
+                              padding: "0.5rem 1rem",
+                              borderRadius: "30px",
+                              fontSize: "0.9rem",
+                              fontWeight: 500,
+                              border: "1px solid #bfdbfe"
+                            }}
+                          >
+                            {course}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => {
+                      alert(`Saving ${career.title} to your career path...`);
+                    }}
+                    style={{
+                      marginTop: "1rem",
+                      padding: "0.75rem 1.5rem",
+                      background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "8px",
+                      fontSize: "1rem",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      width: "100%",
+                      transition: "all 0.2s ease"
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "linear-gradient(135deg, #5a67d8 0%, #6b46a1 100%)";
+                      e.currentTarget.style.transform = "translateY(-2px)";
+                      e.currentTarget.style.boxShadow = "0 4px 12px rgba(102, 126, 234, 0.3)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "linear-gradient(135deg, #667eea 0%, #764ba2 100%)";
+                      e.currentTarget.style.transform = "translateY(0)";
+                      e.currentTarget.style.boxShadow = "none";
+                    }}
+                  >
+                    Save This Career Path
+                  </button>
+                </div>
+              ))}
+            </div>
           ) : (
-            <p style={{ fontSize: "0.875rem" }}>No AI suggestions available yet.</p>
+            <div style={{ textAlign: "center", padding: "3rem" }}>
+              <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>🔍</div>
+              <h3 style={{ color: "#2d3748", marginBottom: "0.5rem" }}>No Suggestions Found</h3>
+              <p style={{ color: "#718096" }}>
+                Try adding more skills to your profile for better recommendations.
+              </p>
+            </div>
           )}
-          <div style={{ marginTop: "1rem", textAlign: "right" }}>
+
+          <div style={{ 
+            marginTop: "2rem", 
+            display: "flex", 
+            justifyContent: "flex-end",
+            borderTop: "1px solid #e2e8f0",
+            paddingTop: "1.5rem"
+          }}>
             <button
               onClick={() => setShowAiModal(false)}
               style={{
-                padding: "0.5rem 1rem",
-                background: "#667eea",
-                color: "white",
+                padding: "0.75rem 2rem",
+                background: "#f1f5f9",
+                color: "#4a5568",
                 border: "none",
                 borderRadius: "8px",
-                cursor: "pointer",
+                fontSize: "1rem",
                 fontWeight: 600,
-                fontSize: "0.875rem",
+                cursor: "pointer",
+                transition: "all 0.2s ease"
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "#e2e8f0";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "#f1f5f9";
               }}
             >
               Close
             </button>
           </div>
-        </Modal>
-      )}
+        </div>
+      </Modal>
     </div>
   );
 };

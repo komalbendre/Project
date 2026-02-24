@@ -12,6 +12,27 @@ const CompanySidebar = ({ isOpen, onToggle }) => {
   const location = useLocation();
   const [expandedSettings, setExpandedSettings] = useState(false);
 
+  // Updated color scheme
+  const colors = {
+    // Black/Dark Gray for structure
+    darkBlack: '#0F172A',      // Main sidebar background
+    softBlack: '#1E293B',      // Hover states, active items
+    darkGray: '#334155',       // Borders, icons
+    
+    // Blue for primary actions
+    primaryBlue: '#2563EB',     // Active menu, buttons
+    hoverBlue: '#1D4ED8',       // Hover states
+    lightBlue: '#DBEAFE',       // Background for active items
+    
+    // White for clean backgrounds
+    pureWhite: '#FFFFFF',       // Text on dark backgrounds
+    lightBackground: '#F8FAFC', // Background for cards/content
+    
+    // Supporting colors
+    grayText: '#64748B',        // Secondary text
+    borderColor: '#E2E8F0'      // Borders, dividers
+  };
+
   const menuItems = [
     {
       id: "dashboard",
@@ -55,13 +76,9 @@ const CompanySidebar = ({ isOpen, onToggle }) => {
       type: "image",
       hasSubmenu: true,
       submenuItems: [
-        // { title: "General", path: "/company/settings" },
         { title: "Company Profile", path: "/company/edit-profile" },
-        // { title: "Team Members", path: "/company/settings/team" },
         { title: "Notifications", path: "/company/settings/notifications" },
-        { title: "Account", path: "/company/settings/account" },
-        // { title: "Security", path: "/company/settings/security" },
-        // { title: "Billing", path: "/company/settings/billing" }
+        { title: "Account", path: "/company/settings/account" }
       ]
     }
   ];
@@ -104,27 +121,27 @@ const CompanySidebar = ({ isOpen, onToggle }) => {
     sidebar: {
       width: isOpen ? "260px" : "80px",
       height: "100vh",
-      background: "#ffffff",
-      color: "#000000",
+      background: colors.darkBlack,
+      color: colors.pureWhite,
       transition: "all 0.3s ease",
       overflow: "hidden",
       position: "fixed",
       left: 0,
       top: 0,
       zIndex: 1000,
-      boxShadow: "2px 0 10px rgba(0, 0, 0, 0.08)",
-      borderRight: "1px solid #e5e5e5",
+      boxShadow: "2px 0 10px rgba(0, 0, 0, 0.2)",
+      borderRight: `1px solid ${colors.softBlack}`,
       display: "flex",
       flexDirection: "column"
     },
     header: {
       padding: isOpen ? "1.5rem 1.25rem" : "1.5rem 0.75rem",
-      borderBottom: "1px solid #e5e5e5",
+      borderBottom: `1px solid ${colors.softBlack}`,
       display: "flex",
       alignItems: "center",
       justifyContent: isOpen ? "space-between" : "center",
       minHeight: "70px",
-      background: "#ffffff"
+      background: colors.darkBlack
     },
     logoContainer: {
       display: "flex",
@@ -138,8 +155,8 @@ const CompanySidebar = ({ isOpen, onToggle }) => {
     logoIcon: {
       fontSize: "1.5rem",
       fontWeight: "bold",
-      background: "#000000",
-      color: "#ffffff",
+      background: colors.primaryBlue,
+      color: colors.pureWhite,
       width: "32px",
       height: "32px",
       borderRadius: "6px",
@@ -150,13 +167,13 @@ const CompanySidebar = ({ isOpen, onToggle }) => {
     logoText: {
       fontSize: "1.25rem",
       fontWeight: "bold",
-      color: "#000000",
+      color: colors.pureWhite,
       letterSpacing: "-0.5px"
     },
     toggleButton: {
-      background: "#ffffff",
-      border: "1px solid #d4d4d4",
-      color: "#000000",
+      background: colors.softBlack,
+      border: `1px solid ${colors.darkGray}`,
+      color: colors.pureWhite,
       width: "32px",
       height: "32px",
       borderRadius: "6px",
@@ -171,9 +188,9 @@ const CompanySidebar = ({ isOpen, onToggle }) => {
       flex: 1,
       padding: "1rem 0",
       overflowY: "auto",
-      background: "#ffffff",
+      background: colors.darkBlack,
       scrollbarWidth: "thin",
-      scrollbarColor: "#ccc transparent"
+      scrollbarColor: `${colors.darkGray} transparent`
     },
     menuItem: {
       margin: "0.25rem 0.75rem",
@@ -189,18 +206,19 @@ const CompanySidebar = ({ isOpen, onToggle }) => {
       justifyContent: isOpen ? "flex-start" : "center",
       background: "transparent",
       border: "none",
-      color: "#525252",
+      color: colors.grayText,
       cursor: "pointer",
       transition: "all 0.2s ease",
       fontSize: "0.95rem",
       fontWeight: 500,
-      position: "relative"
+      position: "relative",
+      borderRadius: "6px"
     },
     menuIcon: {
       fontSize: "1.1rem",
       minWidth: "24px",
       textAlign: "center",
-      color: "#000000"
+      color: colors.grayText
     },
     menuText: {
       opacity: isOpen ? 1 : 0,
@@ -208,17 +226,18 @@ const CompanySidebar = ({ isOpen, onToggle }) => {
       whiteSpace: "nowrap",
       flex: 1,
       textAlign: "left",
-      color: "#525252"
+      color: colors.grayText
     },
     arrowIcon: {
       fontSize: "0.75rem",
       transition: "transform 0.3s ease",
       opacity: isOpen ? 1 : 0,
-      marginLeft: "auto"
+      marginLeft: "auto",
+      color: colors.grayText
     },
     badge: {
-      background: "#000000",
-      color: "#ffffff",
+      background: colors.primaryBlue,
+      color: colors.pureWhite,
       fontSize: "0.7rem",
       padding: "0.1rem 0.4rem",
       borderRadius: "10px",
@@ -227,7 +246,7 @@ const CompanySidebar = ({ isOpen, onToggle }) => {
       textAlign: "center"
     },
     submenu: {
-      background: "#fafafa",
+      background: colors.softBlack,
       borderRadius: "0 0 6px 6px",
       overflow: "hidden",
       maxHeight: expandedSettings ? "300px" : "0",
@@ -235,19 +254,19 @@ const CompanySidebar = ({ isOpen, onToggle }) => {
     },
     submenuItem: {
       padding: "0.6rem 1rem 0.6rem 3rem",
-      color: "#666666",
+      color: colors.grayText,
       fontSize: "0.85rem",
       cursor: "pointer",
       transition: "all 0.2s ease",
-      borderLeft: "2px solid transparent"
+      borderLeft: `2px solid transparent`
     },
     footer: {
       padding: isOpen ? "1rem 1.25rem" : "1rem 0.75rem",
-      borderTop: "1px solid #e5e5e5",
+      borderTop: `1px solid ${colors.softBlack}`,
       display: "flex",
       flexDirection: "column",
       gap: "0.5rem",
-      background: "#ffffff"
+      background: colors.darkBlack
     },
     userInfo: {
       display: "flex",
@@ -261,14 +280,14 @@ const CompanySidebar = ({ isOpen, onToggle }) => {
       width: "36px",
       height: "36px",
       borderRadius: "50%",
-      background: "#000000",
-      color: "#ffffff",
+      background: colors.primaryBlue,
+      color: colors.pureWhite,
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
       fontWeight: "600",
       fontSize: "0.875rem",
-      border: "2px solid #e5e5e5"
+      border: `2px solid ${colors.softBlack}`
     },
     userDetails: {
       flex: 1,
@@ -277,14 +296,14 @@ const CompanySidebar = ({ isOpen, onToggle }) => {
     userName: {
       fontSize: "0.875rem",
       fontWeight: 600,
-      color: "#000000",
+      color: colors.pureWhite,
       whiteSpace: "nowrap",
       overflow: "hidden",
       textOverflow: "ellipsis"
     },
     userEmail: {
       fontSize: "0.75rem",
-      color: "#666666",
+      color: colors.grayText,
       whiteSpace: "nowrap",
       overflow: "hidden",
       textOverflow: "ellipsis"
@@ -295,9 +314,9 @@ const CompanySidebar = ({ isOpen, onToggle }) => {
       gap: "0.75rem",
       padding: isOpen ? "0.5rem 1rem" : "0.5rem 0",
       justifyContent: isOpen ? "flex-start" : "center",
-      background: "#ffffff",
-      border: "1px solid #d4d4d4",
-      color: "#000000",
+      background: colors.softBlack,
+      border: `1px solid ${colors.darkGray}`,
+      color: colors.pureWhite,
       borderRadius: "6px",
       cursor: "pointer",
       fontSize: "0.875rem",
@@ -307,21 +326,26 @@ const CompanySidebar = ({ isOpen, onToggle }) => {
     },
     logoutText: {
       opacity: isOpen ? 1 : 0,
-      transition: "opacity 0.3s ease"
+      transition: "opacity 0.3s ease",
+      color: colors.pureWhite
     },
     activeMenuItem: {
-      background: "#f5f5f5",
-      color: "#000000",
-      borderLeft: "3px solid #000000"
+      background: colors.softBlack,
+      color: colors.pureWhite,
+      borderLeft: `3px solid ${colors.primaryBlue}`
     },
     activeSubmenuItem: {
-      color: "#000000",
+      color: colors.pureWhite,
       fontWeight: 600,
-      background: "#f0f0f0",
-      borderLeft: "2px solid #000000"
+      background: colors.darkBlack,
+      borderLeft: `2px solid ${colors.primaryBlue}`
     },
     activeIcon: {
-      color: "#000000"
+      color: colors.pureWhite
+    },
+    activeMenuText: {
+      color: colors.pureWhite,
+      fontWeight: 600
     },
     overlay: {
       position: "fixed",
@@ -329,7 +353,7 @@ const CompanySidebar = ({ isOpen, onToggle }) => {
       left: 0,
       right: 0,
       bottom: 0,
-      background: "rgba(0, 0, 0, 0.5)",
+      background: "rgba(15, 23, 42, 0.5)", // Using darkBlack with opacity
       zIndex: 999,
       display: window.innerWidth < 768 && isOpen ? "block" : "none"
     }
@@ -371,8 +395,8 @@ const CompanySidebar = ({ isOpen, onToggle }) => {
           <button
             style={styles.toggleButton}
             onClick={onToggle}
-            onMouseEnter={(e) => e.currentTarget.style.background = "#f5f5f5"}
-            onMouseLeave={(e) => e.currentTarget.style.background = "#ffffff"}
+            onMouseEnter={(e) => e.currentTarget.style.background = colors.darkGray}
+            onMouseLeave={(e) => e.currentTarget.style.background = colors.softBlack}
           >
             {isOpen ? "←" : "→"}
           </button>
@@ -388,12 +412,18 @@ const CompanySidebar = ({ isOpen, onToggle }) => {
                   ...((isActive(item.path) || (item.hasSubmenu && isSettingsActive())) && styles.activeMenuItem)
                 }}
                 onClick={() => handleMenuClick(item)}
-                onMouseEnter={(e) => !isActive(item.path) && 
-                  (e.currentTarget.style.background = "#f9f9f9")
-                }
-                onMouseLeave={(e) => !isActive(item.path) && 
-                  (e.currentTarget.style.background = "transparent")
-                }
+                onMouseEnter={(e) => {
+                  if (!isActive(item.path) && !(item.hasSubmenu && isSettingsActive())) {
+                    e.currentTarget.style.background = colors.softBlack;
+                    e.currentTarget.style.color = colors.pureWhite;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive(item.path) && !(item.hasSubmenu && isSettingsActive())) {
+                    e.currentTarget.style.background = "transparent";
+                    e.currentTarget.style.color = colors.grayText;
+                  }
+                }}
               >
                 <span style={{
                   ...styles.menuIcon,
@@ -407,7 +437,9 @@ const CompanySidebar = ({ isOpen, onToggle }) => {
                         width: "20px",
                         height: "20px",
                         objectFit: "contain",
-                        filter: (isActive(item.path) || (item.hasSubmenu && isSettingsActive())) ? "invert(0)" : "invert(0.5)"
+                        filter: (isActive(item.path) || (item.hasSubmenu && isSettingsActive())) 
+                          ? "brightness(0) invert(1)" // White for active
+                          : "brightness(0) invert(0.6)" // Gray for inactive
                       }}
                     />
                   ) : (
@@ -417,7 +449,7 @@ const CompanySidebar = ({ isOpen, onToggle }) => {
                 {isOpen && (
                   <span style={{
                     ...styles.menuText,
-                    ...((isActive(item.path) || (item.hasSubmenu && isSettingsActive())) && { color: "#000000", fontWeight: 600 })
+                    ...((isActive(item.path) || (item.hasSubmenu && isSettingsActive())) && styles.activeMenuText)
                   }}>
                     {item.title}
                   </span>
@@ -446,12 +478,18 @@ const CompanySidebar = ({ isOpen, onToggle }) => {
                         ...(isActive(subItem.path) && styles.activeSubmenuItem)
                       }}
                       onClick={() => handleSubmenuClick(subItem.path)}
-                      onMouseEnter={(e) => !isActive(subItem.path) && 
-                        (e.currentTarget.style.background = "#f5f5f5")
-                      }
-                      onMouseLeave={(e) => !isActive(subItem.path) && 
-                        (e.currentTarget.style.background = "transparent")
-                      }
+                      onMouseEnter={(e) => {
+                        if (!isActive(subItem.path)) {
+                          e.currentTarget.style.background = colors.darkBlack;
+                          e.currentTarget.style.color = colors.pureWhite;
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isActive(subItem.path)) {
+                          e.currentTarget.style.background = "transparent";
+                          e.currentTarget.style.color = colors.grayText;
+                        }
+                      }}
                     >
                       {subItem.title}
                     </div>
@@ -478,9 +516,20 @@ const CompanySidebar = ({ isOpen, onToggle }) => {
           <button
             style={styles.logoutButton}
             onClick={handleLogout}
-            onMouseEnter={(e) => e.currentTarget.style.background = "#f5f5f5"}
-            onMouseLeave={(e) => e.currentTarget.style.background = "#ffffff"}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = colors.darkGray;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = colors.softBlack;
+            }}
           >
+            <span style={styles.menuIcon}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+            </span>
             {isOpen && <span style={styles.logoutText}>Logout</span>}
           </button>
         </div>

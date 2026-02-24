@@ -36,7 +36,6 @@ const Dashboard = () => {
   const [stats, setStats] = useState({
     applications: { value: 0, trend: 0 },
     interviews: { value: 0, trend: 0 },
-    offers: { value: 0, trend: 0 },
     savedInternships: { value: 0, trend: 0 },
   });
 
@@ -189,7 +188,7 @@ const Dashboard = () => {
         
         setApplicationsFunnelData(stages);
         
-        // Update stats
+        // Update stats - removed offers
         setStats(prev => ({
           ...prev,
           applications: {
@@ -199,10 +198,6 @@ const Dashboard = () => {
           interviews: {
             value: interviewsCount || 0,
             trend: calculateTrend(prev.interviews?.value || 0, interviewsCount || 0)
-          },
-          offers: {
-            value: statusCounts.accepted || 0,
-            trend: calculateTrend(prev.offers?.value || 0, statusCounts.accepted || 0)
           }
         }));
       }
@@ -840,10 +835,10 @@ const Dashboard = () => {
       transition: "all 0.2s",
     },
 
-    // Stats Cards
+    // Stats Cards - Updated to 3 cards
     statsGrid: {
       display: "grid",
-      gridTemplateColumns: "repeat(2, 1fr)",
+      gridTemplateColumns: "repeat(3, 1fr)",
       gap: "20px",
       marginBottom: "28px",
     },
