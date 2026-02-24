@@ -6,8 +6,14 @@ import User from "../models/User.js";
 import OpenAI from "openai";
 
 const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENROUTER_API_KEY,
+  baseURL: "https://openrouter.ai/api/v1",
+//   defaultHeaders: {
+//     "HTTP-Referer": "http://localhost:3000",
+//     "X-Title": "Career Assistant"
+//   }
 });
+
 
 
 // ===============================
@@ -79,7 +85,7 @@ export const sendMessage = async (req, res) => {
             return res.status(400).json({ message: "Message is required" });
         }
 
-        const session = await ChatSession.findOne({ userId });
+        let session = await ChatSession.findOne({ userId });
 
         if (!session) {
             session = await ChatSession.create({
@@ -111,7 +117,7 @@ Be friendly and concise.
 `;
 
         const completion = await openai.chat.completions.create({
-            model: "gpt-4o-mini",
+            model: "meta-llama/llama-3.1-8b-instruct",
             messages: [
                 { role: "system", content: systemPrompt },
                 { role: "user", content: message }
@@ -130,7 +136,10 @@ Be friendly and concise.
         res.json({ reply: botReply });
 
     } catch (error) {
-        console.error("Error sending message:", error);
-        res.status(500).json({ message: "Server error" });
-    }
+   console.error("FULL ERROR:", error);
+   console.error("ERROR RESPONSE:", error.response?.data);
+   res.status(500).json({
+      error: error.response?.data || error.message
+   });
+}
 };

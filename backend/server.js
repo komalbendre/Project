@@ -86,3 +86,6 @@ app.listen(PORT, () => {
   console.log(`Backend running at: http://localhost:${PORT}`);
   console.log(`Internships API: GET http://localhost:${PORT}/api/internships`);
 });
+
+console.log("OPENROUTER KEY:", process.env.OPENROUTER_API_KEY);
+console.log("KEY:", process.env.OPENROUTER_API_KEY);
