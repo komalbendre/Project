@@ -28,10 +28,15 @@ import Internships from "./pages/Internships"; // Import the new Internships pag
 import CompanyInterviews from './pages/Company/CompanyInterviews';
 // import ResumeOne from './pages/resumes/resumeOne'; 
 // import openaiRouter from "./routes/openai.js";
+import ChatbotWidget from "./components/chatbot/ChatbotWidget";
+
 
 function App() {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  
+  const isAuthenticated = !!localStorage.getItem("token");
+
 
   // Check if we're on a company route
   const isCompanyRoute = location.pathname.startsWith('/company/');
@@ -62,6 +67,8 @@ function App() {
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
   };
+
+  
 
   return (
     <div>
@@ -200,7 +207,14 @@ function App() {
             </ProtectedRoute>
           } />
         </Routes>
+        
       </div>
+
+      
+      {isAuthenticated && !isAdminRoute && !isCompanyRoute && (
+        <ChatbotWidget />
+      )}
+      
     </div>
   );
 }

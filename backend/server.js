@@ -12,6 +12,8 @@ import resumeRoutes from './routes/resumeRoutes.js';
 import internshipRoutes from "./routes/internshipRoutes.js";
 import careerPathRoutes from "./routes/careerPathRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
+import chatbotRoutes from "./routes/chatbotRoutes.js";
+
 import applicationRoutes from "./routes/applicationRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
 import analyticsRoutes from "./routes/analyticsRoutes.js";
@@ -50,6 +52,8 @@ app.use('/api/resume', resumeRoutes);
 app.use("/api/internships", internshipRoutes);
 app.use("/api/career-paths", careerPathRoutes);
 app.use("/api/ai", aiRoutes);
+app.use("/api/chatbot", chatbotRoutes);
+
 app.use("/api/applications", applicationRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/analytics", analyticsRoutes);
@@ -80,3 +84,6 @@ app.listen(PORT, () => {
   console.log(`Backend running at: http://localhost:${PORT}`);
   console.log(`Internships API: GET http://localhost:${PORT}/api/internships`);
 });
+
+console.log("OPENROUTER KEY:", process.env.OPENROUTER_API_KEY);
+console.log("KEY:", process.env.OPENROUTER_API_KEY);
