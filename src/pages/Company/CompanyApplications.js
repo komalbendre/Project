@@ -147,7 +147,7 @@ const CompanyApplications = () => {
                 app.fullName?.toLowerCase().includes(searchLower) ||
                 app.email?.toLowerCase().includes(searchLower) ||
                 app.internship?.title?.toLowerCase().includes(searchLower) ||
-                app.skills?.some(skill => skill.toLowerCase().includes(searchLower))
+                (app.skills && app.skills.some(skill => skill.toLowerCase().includes(searchLower)))
             );
         }
 
@@ -803,7 +803,7 @@ const CompanyApplications = () => {
                         className="action-button"
                         disabled={updatingStatus}
                     >
-                        Mark as Reviewed
+                        📋 Mark as Reviewed
                     </button>
                     <button
                         style={styles.actionButton}
@@ -811,7 +811,7 @@ const CompanyApplications = () => {
                         className="action-button"
                         disabled={updatingStatus}
                     >
-                        Shortlist
+                        ⭐ Shortlist
                     </button>
                     <button
                         style={{ ...styles.actionButton, ...styles.primaryActionButton }}
@@ -819,7 +819,7 @@ const CompanyApplications = () => {
                         className="action-button"
                         disabled={updatingStatus}
                     >
-                        Reject
+                        ❌ Reject
                     </button>
                 </div>
             </div>
@@ -866,9 +866,6 @@ const CompanyApplications = () => {
                                     <th style={styles.tableHeaderCell}>Candidate</th>
                                     <th style={styles.tableHeaderCell}>Position</th>
                                     <th style={styles.tableHeaderCell}>Applied Date</th>
-                                    <th style={styles.tableHeaderCell}>Status</th>
-                                    <th style={styles.tableHeaderCell}>Skills</th>
-                                    <th style={styles.tableHeaderCell}>Resume</th>
                                     <th style={styles.tableHeaderCell}>Actions</th>
                                 </tr>
                             </thead>
@@ -911,49 +908,6 @@ const CompanyApplications = () => {
                                             <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>
                                                 {application.experience ? `${application.experience} yr` : 'Fresher'}
                                             </div>
-                                        </td>
-                                        <td style={styles.tableCell}>
-                                            <div>
-                                                <span style={getStatusBadgeStyle(application.status)}>
-                                                    {application.status || 'Pending'}
-                                                </span>
-                                            </div>
-                                            <select
-                                                style={styles.statusSelect}
-                                                value={application.status || 'pending'}
-                                                onChange={(e) => handleStatusChange(application._id, e.target.value)}
-                                                disabled={updatingStatus}
-                                            >
-                                                <option value="pending">Pending</option>
-                                                <option value="reviewed">Reviewed</option>
-                                                <option value="shortlisted">Shortlisted</option>
-                                                <option value="accepted">Accepted</option>
-                                                <option value="rejected">Rejected</option>
-                                            </select>
-                                        </td>
-                                        <td style={styles.tableCell}>
-                                            <div style={styles.skillsContainer}>
-                                                {application.skills?.slice(0, 3).map((skill, idx) => (
-                                                    <span key={idx} style={styles.skillTag}>{skill}</span>
-                                                ))}
-                                                {application.skills?.length > 3 && (
-                                                    <span style={styles.skillTag}>+{application.skills.length - 3}</span>
-                                                )}
-                                            </div>
-                                        </td>
-                                        <td style={styles.tableCell}>
-                                            {application.resumeUrl ? (
-                                                <a
-                                                    href={application.resumeUrl}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    style={{ color: '#3b82f6', textDecoration: 'none' }}
-                                                >
-                                                    View Resume
-                                                </a>
-                                            ) : (
-                                                <span style={{ color: '#9ca3af' }}>No resume</span>
-                                            )}
                                         </td>
                                         <td style={styles.tableCell}>
                                             <div style={styles.actionButtons}>

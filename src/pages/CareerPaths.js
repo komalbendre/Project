@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Modal from "../components/Modal";
+import SavedCareerPathsModal from "../components/SavedCareerPathsModal";
 
 const CareerPaths = () => {
   const navigate = useNavigate();
@@ -15,6 +16,7 @@ const CareerPaths = () => {
   const [showAiModal, setShowAiModal] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [fetchError, setFetchError] = useState("");
+  const [showSavedModal, setShowSavedModal] = useState(false);
   const [filterOptions, setFilterOptions] = useState({
     location: "",
     experienceLevel: "",
@@ -213,7 +215,7 @@ const CareerPaths = () => {
         }));
 
         setInternships(transformedInternships);
-        
+
         // Update pagination info from response headers or data
         if (response.data.pagination) {
           setPagination({
@@ -240,6 +242,52 @@ const CareerPaths = () => {
       console.error("Error fetching internships:", error);
       setInternships([]);
       setFetchError("Failed to load internships. Please try again later.");
+    }
+  };
+
+  const saveCareerPath = (career) => {
+    try {
+      // Get existing saved career paths
+      const saved = localStorage.getItem("savedCareerPaths");
+      let savedPaths = saved ? JSON.parse(saved) : [];
+
+      // Check if already saved
+      const isAlreadySaved = savedPaths.some(path => path.id === career.id);
+
+      if (isAlreadySaved) {
+        alert("This career path is already saved!");
+        return;
+      }
+
+      // Create a clean career object to save
+      const careerToSave = {
+        id: career.id,
+        title: career.title,
+        company: career.company || career.category,
+        description: career.description,
+        match: career.match,
+        skillsMatch: career.skillsMatch || [],
+        skillsToLearn: career.skillsToLearn || [],
+        salary: career.salary,
+        averageSalary: career.averageSalary,
+        timeline: career.timeline,
+        experience: career.experience,
+        learningSteps: career.learningSteps || []
+      };
+
+      // Add to saved paths
+      savedPaths.push(careerToSave);
+
+      // Save back to localStorage
+      localStorage.setItem("savedCareerPaths", JSON.stringify(savedPaths));
+
+      // Dispatch event to update dashboard
+      window.dispatchEvent(new Event('savedCareerPathsUpdated'));
+
+      alert(`"${career.title}" saved to your career paths!`);
+    } catch (error) {
+      console.error("Error saving career path:", error);
+      alert("Failed to save career path. Please try again.");
     }
   };
 
@@ -402,7 +450,7 @@ const CareerPaths = () => {
       if (response.data.success) {
         const aiData = response.data.data;
         console.log("AI Data received:", aiData);
-        
+
         setAiResults(aiData);
         setShowAiModal(true);
       } else {
@@ -527,10 +575,60 @@ const CareerPaths = () => {
     userData.skills
   ]);
 
+  // const handleSave = (item) => {
+  //   alert(`Saved: ${item.title} at ${item.company || item.platform}`);
+  //   closeDetailsModal();
+  // };
   const handleSave = (item) => {
-    alert(`Saved: ${item.title} at ${item.company || item.platform}`);
+  try {
+    // Get existing saved internships
+    const saved = localStorage.getItem("savedInternships");
+    let savedInternships = saved ? JSON.parse(saved) : [];
+    
+    // Check if already saved (using _id for internships)
+    const isAlreadySaved = savedInternships.some(internship => 
+      internship._id === item.id || internship._id === item._id
+    );
+    
+    if (isAlreadySaved) {
+      alert("This internship is already saved!");
+      return;
+    }
+    
+    // Create a clean internship object to save (using _id as key)
+    const internshipToSave = {
+      _id: item.id || item._id,  // Use id or _id
+      title: item.title,
+      companyName: item.company || item.companyName,
+      location: item.location,
+      stipend: item.stipend || {},
+      duration: item.duration,
+      experienceLevel: item.experienceLevel || item.experience,
+      description: item.description,
+      requirements: item.requirements,
+      applicationDeadline: item.applicationDeadline,
+      savedAt: new Date().toISOString(),
+      type: item.type,
+      skills: item.skills || [],
+      match: item.match
+    };
+    
+    // Add to saved internships
+    savedInternships.push(internshipToSave);
+    
+    // Save back to localStorage
+    localStorage.setItem("savedInternships", JSON.stringify(savedInternships));
+    
+    // Dispatch event to update dashboard
+    window.dispatchEvent(new Event('savedInternshipsUpdated'));
+    
+    alert(`"${item.title}" saved to your internships!`);
     closeDetailsModal();
-  };
+  } catch (error) {
+    console.error("Error saving internship:", error);
+    alert("Failed to save internship. Please try again.");
+  }
+};
 
   const handleApply = (item) => {
     closeDetailsModal();
@@ -1283,7 +1381,7 @@ const CareerPaths = () => {
         <div style={styles.aiBadge}>
           Powered by CareerSync AI
         </div>
-        <div style={{ marginTop: "1rem" }}>
+        <div style={{ marginTop: "1rem", display: "flex", gap: "1rem" }}>
           <button
             onClick={getCareerSuggestions}
             style={{
@@ -1297,6 +1395,20 @@ const CareerPaths = () => {
             }}
           >
             {aiLoading ? "Analyzing..." : "Get AI Career Suggestions"}
+          </button>
+          <button
+            onClick={() => setShowSavedModal(true)}
+            style={{
+              padding: "0.5rem 1rem",
+              background: "#10b981",
+              color: "white",
+              border: "none",
+              borderRadius: "12px",
+              cursor: "pointer",
+              fontWeight: 600,
+            }}
+          >
+            View Saved Paths
           </button>
         </div>
       </div>
@@ -1544,18 +1656,61 @@ const CareerPaths = () => {
                   </div>
 
                   <div style={styles.cardActions}>
-                    <button
-                      style={styles.viewButton}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openDetailsModal(item);
-                      }}
-                      onMouseEnter={(e) => handleButtonHover(e, true)}
-                      onMouseLeave={(e) => handleButtonHover(e, false)}
-                      className="view-button"
-                    >
-                      View Details
-                    </button>
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      <button
+                        style={{
+                          ...styles.viewButton,
+                          flex: 1,
+                          background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openDetailsModal(item);
+                        }}
+                        onMouseEnter={(e) => handleButtonHover(e, true)}
+                        onMouseLeave={(e) => handleButtonHover(e, false)}
+                        className="view-button"
+                      >
+                        View Details
+                      </button>
+                      {selectedCategory === "career-paths" && (
+                        <button
+                          style={{
+                            padding: "0.625rem 1rem",
+                            background: "#10b981",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "8px",
+                            fontSize: "0.875rem",
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            transition: "all 0.2s ease",
+                            minWidth: "40px",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            saveCareerPath(item);
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = "#059669";
+                            e.currentTarget.style.transform = "translateY(-1px)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = "#10b981";
+                            e.currentTarget.style.transform = "translateY(0)";
+                          }}
+                          title="Save Career Path"
+                        >
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                            <circle cx="12" cy="7" r="4" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1616,7 +1771,7 @@ const CareerPaths = () => {
             >
               ← Previous
             </button>
-            
+
             <div style={styles.paginationPages}>
               {getPageNumbers().map((page, index) => (
                 page === '...' ? (
@@ -1874,21 +2029,21 @@ const CareerPaths = () => {
       </Modal>
 
       {/* AI Suggestions Modal */}
-      <Modal 
+      <Modal
         isOpen={showAiModal === true}
         onClose={() => setShowAiModal(false)}
       >
         <div style={{ padding: "2rem", maxWidth: "900px", width: "100%", maxHeight: "80vh", overflowY: "auto" }}>
-          <div style={{ 
-            display: "flex", 
-            justifyContent: "space-between", 
-            alignItems: "center", 
+          <div style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
             marginBottom: "1.5rem",
             borderBottom: "2px solid #e0e7ff",
             paddingBottom: "1rem"
           }}>
-            <h2 style={{ 
-              fontSize: "1.8rem", 
+            <h2 style={{
+              fontSize: "1.8rem",
               fontWeight: 700,
               background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
               WebkitBackgroundClip: "text",
@@ -1977,10 +2132,10 @@ const CareerPaths = () => {
                     </div>
                   </div>
 
-                  <div style={{ 
-                    display: "grid", 
-                    gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", 
-                    gap: "1rem", 
+                  <div style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+                    gap: "1rem",
                     marginBottom: "1.5rem",
                     background: "#f8fafc",
                     padding: "1rem",
@@ -2060,7 +2215,18 @@ const CareerPaths = () => {
 
                   <button
                     onClick={() => {
-                      alert(`Saving ${career.title} to your career path...`);
+                      const careerToSave = {
+                        id: `ai-${Date.now()}-${index}`,
+                        title: career.title,
+                        company: "AI Suggested",
+                        description: career.reason,
+                        match: career.match,
+                        skillsMatch: career.missingSkills || [],
+                        skillsToLearn: career.missingSkills || [],
+                        salary: career.salary,
+                        timeline: career.timeline,
+                      };
+                      saveCareerPath(careerToSave);
                     }}
                     style={{
                       marginTop: "1rem",
@@ -2101,9 +2267,9 @@ const CareerPaths = () => {
             </div>
           )}
 
-          <div style={{ 
-            marginTop: "2rem", 
-            display: "flex", 
+          <div style={{
+            marginTop: "2rem",
+            display: "flex",
             justifyContent: "flex-end",
             borderTop: "1px solid #e2e8f0",
             paddingTop: "1.5rem"
@@ -2133,6 +2299,12 @@ const CareerPaths = () => {
           </div>
         </div>
       </Modal>
+
+      {/* Saved Career Paths Modal */}
+      <SavedCareerPathsModal
+        isOpen={showSavedModal}
+        onClose={() => setShowSavedModal(false)}
+      />
     </div>
   );
 };

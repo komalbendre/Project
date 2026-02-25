@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import ApplicationsModal from "../components/ApplicationsModal";
 import SavedInternshipsModal from "../components/SavedInternshipsModal";
 import InterviewsModal from "../components/InterviewsModal";
+import SavedCareerPathsModal from "../components/SavedCareerPathsModal";
 import { useNavigate } from "react-router-dom";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -22,7 +23,9 @@ const Dashboard = () => {
   const [isApplicationsModalOpen, setIsApplicationsModalOpen] = useState(false);
   const [isSavedModalOpen, setIsSavedModalOpen] = useState(false);
   const [isInterviewsModalOpen, setIsInterviewsModalOpen] = useState(false);
+  const [isSavedCareerPathsModalOpen, setIsSavedCareerPathsModalOpen] = useState(false);
   const [savedCount, setSavedCount] = useState(0);
+  const [savedCareerPathsCount, setSavedCareerPathsCount] = useState(0);
   const [applicationsStats, setApplicationsStats] = useState({
     totalApplications: 0,
     statusCounts: {},
@@ -37,6 +40,7 @@ const Dashboard = () => {
     applications: { value: 0, trend: 0 },
     interviews: { value: 0, trend: 0 },
     savedInternships: { value: 0, trend: 0 },
+    savedCareerPaths: { value: 0, trend: 0 },
   });
 
   // Quick Actions
@@ -96,6 +100,31 @@ const Dashboard = () => {
       setStats(prev => ({
         ...prev,
         savedInternships: {
+          value: 0,
+          trend: 0
+        }
+      }));
+    }
+  };
+
+  const loadSavedCareerPathsCount = () => {
+    const saved = localStorage.getItem("savedCareerPaths");
+    if (saved) {
+      const savedList = JSON.parse(saved);
+      setSavedCareerPathsCount(savedList.length);
+      
+      setStats(prev => ({
+        ...prev,
+        savedCareerPaths: {
+          value: savedList.length,
+          trend: calculateTrend(prev.savedCareerPaths?.value || 0, savedList.length)
+        }
+      }));
+    } else {
+      setSavedCareerPathsCount(0);
+      setStats(prev => ({
+        ...prev,
+        savedCareerPaths: {
           value: 0,
           trend: 0
         }
@@ -352,8 +381,9 @@ const Dashboard = () => {
       }
     };
 
-    // Load saved internships count
+    // Load saved counts
     loadSavedInternshipsCount();
+    loadSavedCareerPathsCount();
 
     Promise.all([
       fetchUserData(),
@@ -366,22 +396,36 @@ const Dashboard = () => {
     });
 
     // Listen for storage changes
-    const handleStorageChange = (e) => {
+    const handleInternshipsStorageChange = (e) => {
       if (e.key === 'savedInternships') {
         loadSavedInternshipsCount();
       }
     };
 
-    const handleCustomEvent = (e) => {
+    const handleCareerPathsStorageChange = (e) => {
+      if (e.key === 'savedCareerPaths') {
+        loadSavedCareerPathsCount();
+      }
+    };
+
+    const handleInternshipsCustomEvent = (e) => {
       loadSavedInternshipsCount();
     };
 
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('savedInternshipsUpdated', handleCustomEvent);
+    const handleCareerPathsCustomEvent = (e) => {
+      loadSavedCareerPathsCount();
+    };
+
+    window.addEventListener('storage', handleInternshipsStorageChange);
+    window.addEventListener('storage', handleCareerPathsStorageChange);
+    window.addEventListener('savedInternshipsUpdated', handleInternshipsCustomEvent);
+    window.addEventListener('savedCareerPathsUpdated', handleCareerPathsCustomEvent);
     
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('savedInternshipsUpdated', handleCustomEvent);
+      window.removeEventListener('storage', handleInternshipsStorageChange);
+      window.removeEventListener('storage', handleCareerPathsStorageChange);
+      window.removeEventListener('savedInternshipsUpdated', handleInternshipsCustomEvent);
+      window.removeEventListener('savedCareerPathsUpdated', handleCareerPathsCustomEvent);
     };
   }, [navigate]);
 
@@ -458,6 +502,10 @@ const Dashboard = () => {
 
   const handleInterviewsClick = () => {
     setIsInterviewsModalOpen(true);
+  };
+
+  const handleSavedCareerPathsClick = () => {
+    setIsSavedCareerPathsModalOpen(true);
   };
 
   const handleQuickAction = (action) => {
@@ -835,10 +883,10 @@ const Dashboard = () => {
       transition: "all 0.2s",
     },
 
-    // Stats Cards - Updated to 3 cards
+    // Stats Cards - Updated to 4 cards
     statsGrid: {
       display: "grid",
-      gridTemplateColumns: "repeat(3, 1fr)",
+      gridTemplateColumns: "repeat(4, 1fr)",
       gap: "20px",
       marginBottom: "28px",
     },
@@ -1301,8 +1349,8 @@ const Dashboard = () => {
                   key={key}
                   style={{
                     ...styles.statCard,
-                    cursor: key === 'applications' || key === 'savedInternships' || key === 'interviews' ? 'pointer' : 'default',
-                    ...((key === 'applications' || key === 'savedInternships' || key === 'interviews') && {
+                    cursor: key === 'applications' || key === 'savedInternships' || key === 'interviews' || key === 'savedCareerPaths' ? 'pointer' : 'default',
+                    ...((key === 'applications' || key === 'savedInternships' || key === 'interviews' || key === 'savedCareerPaths') && {
                       border: '2px solid transparent',
                       backgroundImage: 'linear-gradient(white, white), linear-gradient(135deg, #0073b1, #00a0dc)',
                       backgroundOrigin: 'border-box',
@@ -1313,7 +1361,8 @@ const Dashboard = () => {
                   onClick={
                     key === 'applications' ? handleApplicationsClick : 
                     key === 'savedInternships' ? handleSavedInternshipsClick :
-                    key === 'interviews' ? handleInterviewsClick : undefined
+                    key === 'interviews' ? handleInterviewsClick :
+                    key === 'savedCareerPaths' ? handleSavedCareerPathsClick : undefined
                   }
                   onMouseEnter={(e) => {
                     e.currentTarget.querySelector('.stat-card-hover').style.opacity = 1;
@@ -1329,11 +1378,15 @@ const Dashboard = () => {
                   <div style={styles.statCardLabel}>
                     {key === 'savedInternships'
                       ? 'Saved Internships'
+                      : key === 'savedCareerPaths'
+                      ? 'Saved Career Paths'
                       : key.split(/(?=[A-Z])/).join(" ")}
                   </div>
                   <div style={styles.statCardDescription}>
                     {key === 'savedInternships'
                       ? 'Internships saved'
+                      : key === 'savedCareerPaths'
+                      ? 'Career paths saved'
                       : key === 'interviews'
                       ? 'Total interviews scheduled'
                       : `Total ${key.toLowerCase()}`}
@@ -1602,6 +1655,11 @@ const Dashboard = () => {
         isOpen={isInterviewsModalOpen}
         onClose={() => setIsInterviewsModalOpen(false)}
         userId={localStorage.getItem("userId")}
+      />
+
+      <SavedCareerPathsModal
+        isOpen={isSavedCareerPathsModalOpen}
+        onClose={() => setIsSavedCareerPathsModalOpen(false)}
       />
     </div>
   );
