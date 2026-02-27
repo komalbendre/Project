@@ -27,5 +27,3 @@ export const saveProfile = async (payload) => {
   const response = await api.put("/profile/me", payload);
   return response.data;
 };
-
-

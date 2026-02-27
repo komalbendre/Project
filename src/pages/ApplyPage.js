@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import axios from "axios";
 
-// SVG Icons Component
+// SVG Icons Component (keep all your existing Icons code here - it's the same)
 const Icons = {
   ArrowLeft: () => (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -162,12 +162,6 @@ const Icons = {
   ),
 };
 
-const commonSkills = [
-  "JavaScript", "React", "Node.js", "TypeScript", "Python", "Java", 
-  "HTML/CSS", "MongoDB", "SQL", "AWS", "Git", "Docker",
-  "Communication", "Problem Solving", "Teamwork", "Leadership"
-];
-
 const ApplyPage = () => {
   const navigate = useNavigate();
   const { internshipId } = useParams();
@@ -180,16 +174,12 @@ const ApplyPage = () => {
     fullName: "",
     email: "",
     phone: "",
-    currentRole: "",
-    experience: "",
-    education: "",
     skills: [],
     coverLetter: "",
     resumeUrl: "",
     portfolioUrl: "",
     linkedinUrl: "",
     githubUrl: "",
-    startDate: "",
     additionalInfo: ""
   });
   const [errors, setErrors] = useState({});
@@ -223,7 +213,6 @@ const ApplyPage = () => {
           stipend: formatStipend(data.stipend),
           duration: data.duration,
           timeline: data.startDate ? new Date(data.startDate).toLocaleDateString() : "Flexible",
-          experience: data.experienceLevel,
           description: data.description,
           skills: data.skills || [],
           applicationDeadline: data.applicationDeadline
@@ -256,8 +245,7 @@ const ApplyPage = () => {
           fullName: profile.fullName || "",
           email: profile.email || "",
           phone: profile.phone || "",
-          currentRole: profile.experience?.[0]?.title || "",
-          skills: profile.technicalSkills?.slice(0, 10) || [],
+          skills: profile.technicalSkills || [],
           linkedinUrl: profile.linkedin || "",
           githubUrl: profile.github || "",
           portfolioUrl: profile.portfolio || ""
@@ -298,20 +286,13 @@ const ApplyPage = () => {
     }
   };
 
-  const handleSkillsChange = (skill) => {
-    setFormData(prev => {
-      const newSkills = prev.skills.includes(skill)
-        ? prev.skills.filter(s => s !== skill)
-        : [...prev.skills, skill];
-      return { ...prev, skills: newSkills };
-    });
-  };
-
   const validateForm = () => {
     const newErrors = {};
     
     if (!formData.fullName.trim()) {
       newErrors.fullName = "Full name is required";
+    } else if (formData.fullName.trim().length < 2) {
+      newErrors.fullName = "Full name must be at least 2 characters";
     }
     
     if (!formData.email.trim()) {
@@ -322,16 +303,22 @@ const ApplyPage = () => {
     
     if (!formData.phone.trim()) {
       newErrors.phone = "Phone number is required";
+    } else if (formData.phone.trim().length < 10) {
+      newErrors.phone = "Please enter a valid phone number";
     }
     
     if (!formData.coverLetter.trim()) {
       newErrors.coverLetter = "Cover letter is required";
     } else if (formData.coverLetter.length < 50) {
       newErrors.coverLetter = "Cover letter should be at least 50 characters";
+    } else if (formData.coverLetter.length > 5000) {
+      newErrors.coverLetter = "Cover letter should not exceed 5000 characters";
     }
     
     if (!formData.resumeUrl.trim()) {
       newErrors.resumeUrl = "Resume URL is required";
+    } else if (!formData.resumeUrl.match(/^https?:\/\/.+/)) {
+      newErrors.resumeUrl = "Please enter a valid URL (include http:// or https://)";
     }
     
     if (formData.portfolioUrl && !formData.portfolioUrl.match(/^https?:\/\/.+/)) {
@@ -350,80 +337,144 @@ const ApplyPage = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  
-  if (!validateForm()) {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    return;
-  }
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
 
-  try {
-    setSubmitting(true);
-    
-    const token = localStorage.getItem("token");
-    const userId = localStorage.getItem("userId");
-    
-    const applicationPayload = {
-      fullName: formData.fullName,
-      email: formData.email,
-      phone: formData.phone,
-      currentRole: formData.currentRole,
-      experience: formData.experience,
-      education: formData.education,
-      skills: formData.skills,
-      coverLetter: formData.coverLetter,
-      resumeUrl: formData.resumeUrl,
-      portfolioUrl: formData.portfolioUrl,
-      linkedinUrl: formData.linkedinUrl,
-      githubUrl: formData.githubUrl,
-      startDate: formData.startDate || undefined,
-      additionalInfo: formData.additionalInfo
-    };
-    
-    console.log("Submitting application payload:", applicationPayload);
-    
-    const response = await axios.post(
-      `http://localhost:5000/api/applications/${internshipId}/apply`,
-      applicationPayload,
-      { 
-        headers: { 
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        } 
+    try {
+      setSubmitting(true);
+      
+      const token = localStorage.getItem("token");
+      const userId = localStorage.getItem("userId");
+      
+      // Make sure we have the userId
+      if (!userId) {
+        throw new Error("User ID not found");
       }
-    );
-    
-    console.log("Application response:", response.data);
-    
-    if (response.data.success) {
-      setSubmitSuccess(true);
-      setTimeout(() => {
-        navigate("/career-paths");
-      }, 3000);
+
+      // Create payload with valid enum values
+      const applicationPayload = {
+        userId: userId,
+        fullName: formData.fullName.trim(),
+        email: formData.email.trim().toLowerCase(),
+        phone: formData.phone.trim(),
+        experience: "0", // Use a valid enum value from ['0','1','2','3','4','5']
+        education: "",   // Empty string IS allowed for education
+        skills: Array.isArray(formData.skills) ? formData.skills : [],
+        coverLetter: formData.coverLetter.trim(),
+        resumeUrl: formData.resumeUrl.trim(),
+        portfolioUrl: formData.portfolioUrl.trim() || "",
+        linkedinUrl: formData.linkedinUrl.trim() || "",
+        githubUrl: formData.githubUrl.trim() || "",
+        startDate: undefined,
+        additionalInfo: formData.additionalInfo.trim() || ""
+      };
+
+      // Remove undefined fields
+      Object.keys(applicationPayload).forEach(key => 
+        applicationPayload[key] === undefined && delete applicationPayload[key]
+      );
+
+      console.log("Submitting application payload:", applicationPayload);
+      
+      const response = await axios.post(
+        `http://localhost:5000/api/applications/${internshipId}/apply`,
+        applicationPayload,
+        { 
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          } 
+        }
+      );
+      
+      console.log("Application response:", response.data);
+      
+      if (response.data.success) {
+        setSubmitSuccess(true);
+        // Store the application ID in localStorage to track applied internships
+        const appliedInternships = JSON.parse(localStorage.getItem('appliedInternships') || '[]');
+        appliedInternships.push(internshipId);
+        localStorage.setItem('appliedInternships', JSON.stringify(appliedInternships));
+        
+        setTimeout(() => {
+          navigate("/career-paths");
+        }, 3000);
+      }
+      
+    } catch (error) {
+      console.error("Error submitting application:", error);
+      
+      let errorMessage = "Failed to submit application. Please try again.";
+      
+      if (error.response) {
+        console.error("Error response data:", error.response.data);
+        console.error("Error response status:", error.response.status);
+        
+        if (error.response.data && error.response.data.message) {
+          errorMessage = error.response.data.message;
+        } else if (error.response.data && error.response.data.errors) {
+          // Handle validation errors from backend
+          const backendErrors = error.response.data.errors;
+          if (typeof backendErrors === 'object') {
+            errorMessage = Object.values(backendErrors).join(", ");
+          } else {
+            errorMessage = backendErrors;
+          }
+        } else if (error.response.status === 400) {
+          errorMessage = "Validation error. Please check your form data.";
+        } else if (error.response.status === 401) {
+          errorMessage = "Your session has expired. Please login again.";
+          localStorage.removeItem('token');
+          localStorage.removeItem('userId');
+          setTimeout(() => navigate("/login"), 2000);
+        } else if (error.response.status === 403) {
+          errorMessage = "You don't have permission to apply for this internship.";
+        } else if (error.response.status === 404) {
+          errorMessage = "Internship not found.";
+        } else if (error.response.status === 409) {
+          errorMessage = "You have already applied for this internship.";
+        }
+      } else if (error.request) {
+        errorMessage = "No response from server. Please check your internet connection.";
+      } else {
+        errorMessage = error.message;
+      }
+      
+      setErrors({ submit: errorMessage });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      
+    } finally {
+      setSubmitting(false);
     }
-    
-  } catch (error) {
-    console.error("Error submitting application:", error);
-    
-    let errorMessage = "Failed to submit application. Please try again.";
-    
-    if (error.response?.data?.message) {
-      errorMessage = error.response.data.message;
-    } else if (error.response?.data?.errors) {
-      errorMessage = Object.values(error.response.data.errors).join(", ");
-    }
-    
-    setErrors({ submit: errorMessage });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    
-  } finally {
-    setSubmitting(false);
-  }
-};
+  };
 
   const handleCancel = () => {
     navigate(-1);
+  };
+
+  const SkillsDisplay = ({ skills }) => {
+    if (!skills || skills.length === 0) {
+      return (
+        <div style={styles.noSkillsMessage}>
+          <Icons.Info /> No skills found in your profile. Please update your profile first.
+        </div>
+      );
+    }
+
+    return (
+      <div style={styles.skillsDisplayContainer}>
+        {skills.map((skill, index) => (
+          <span key={index} style={styles.skillDisplayTag}>
+            {skill}
+          </span>
+        ))}
+      </div>
+    );
   };
 
   if (loading) {
@@ -499,18 +550,7 @@ const handleSubmit = async (e) => {
           box-shadow: 0 0 0 3px rgba(0, 115, 177, 0.1);
         }
         
-        .skill-chip:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        
-        .skill-chip.selected {
-          background: linear-gradient(135deg, #0073b1 0%, #00a0dc 100%);
-          color: white;
-          border-color: transparent;
-        }
-        
-        .submit-button:hover {
+        .submit-button:hover:not(:disabled) {
           background: linear-gradient(135deg, #006097 0%, #0080b0 100%);
           transform: translateY(-1px);
           box-shadow: 0 4px 12px rgba(0, 115, 177, 0.25);
@@ -524,10 +564,6 @@ const handleSubmit = async (e) => {
         .back-button:hover {
           background: #f0f7ff;
           transform: translateY(-1px);
-        }
-        
-        .tab:hover:not(.active) {
-          background: #f1f5f9;
         }
       `}</style>
 
@@ -589,13 +625,7 @@ const handleSubmit = async (e) => {
                   <span style={styles.infoValue}>{internship.timeline}</span>
                 </div>
               </div>
-              <div style={styles.infoItem}>
-                <span style={styles.infoIcon}><Icons.Briefcase /></span>
-                <div>
-                  <span style={styles.infoLabel}>Experience</span>
-                  <span style={styles.infoValue}>{internship.experience}</span>
-                </div>
-              </div>
+              
               <div style={styles.infoItem}>
                 <span style={styles.infoIcon}><Icons.Clock /></span>
                 <div>
@@ -639,7 +669,7 @@ const handleSubmit = async (e) => {
                 <h4 style={styles.tipTitle}>Application Tips</h4>
                 <ul style={styles.tipList}>
                   <li>Customize your cover letter for this specific role</li>
-                  <li>Highlight relevant projects and experience</li>
+                  <li>Highlight relevant projects</li>
                   <li>Ensure your resume is up to date</li>
                   <li>Include links to your portfolio or GitHub</li>
                 </ul>
@@ -732,117 +762,25 @@ const handleSubmit = async (e) => {
                   </div>
                   {errors.phone && <span style={styles.errorText}><Icons.AlertCircle /> {errors.phone}</span>}
                 </div>
-
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>
-                    <span style={styles.labelIcon}><Icons.Briefcase /></span>
-                    Current Role
-                  </label>
-                  <div style={styles.inputWrapper}>
-                    <input
-                      type="text"
-                      name="currentRole"
-                      style={styles.input}
-                      value={formData.currentRole}
-                      onChange={handleInputChange}
-                      placeholder="Frontend Developer, Student, etc."
-                      className="form-input"
-                    />
-                  </div>
-                </div>
               </div>
             </div>
 
-            {/* Experience & Education Section */}
-            <div style={styles.formSection}>
-              <div style={styles.formSectionHeader}>
-                <span style={styles.formSectionIcon}><Icons.GraduationCap /></span>
-                <h3 style={styles.formSectionTitle}>Experience & Education</h3>
-              </div>
-              
-              <div style={styles.formGrid}>
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>
-                    <span style={styles.labelIcon}><Icons.Clock /></span>
-                    Experience
-                  </label>
-                  <div style={styles.inputWrapper}>
-                    <select
-                      name="experience"
-                      style={styles.select}
-                      value={formData.experience}
-                      onChange={handleInputChange}
-                      className="form-select"
-                    >
-                      <option value="">Select experience</option>
-                      <option value="0">Less than 1 year</option>
-                      <option value="1">1 year</option>
-                      <option value="2">2 years</option>
-                      <option value="3">3 years</option>
-                      <option value="4">4 years</option>
-                      <option value="5">5+ years</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>
-                    <span style={styles.labelIcon}><Icons.GraduationCap /></span>
-                    Education
-                  </label>
-                  <div style={styles.inputWrapper}>
-                    <select
-                      name="education"
-                      style={styles.select}
-                      value={formData.education}
-                      onChange={handleInputChange}
-                      className="form-select"
-                    >
-                      <option value="">Select education</option>
-                      <option value="highschool">High School</option>
-                      <option value="associate">Associate Degree</option>
-                      <option value="bachelors">Bachelor's Degree</option>
-                      <option value="masters">Master's Degree</option>
-                      <option value="phd">PhD</option>
-                      <option value="bootcamp">Bootcamp</option>
-                      <option value="self-taught">Self-taught</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Skills Section */}
+            {/* Skills Section - Read-only */}
             <div style={styles.formSection}>
               <div style={styles.formSectionHeader}>
                 <span style={styles.formSectionIcon}><Icons.Tag /></span>
-                <h3 style={styles.formSectionTitle}>Skills</h3>
+                <h3 style={styles.formSectionTitle}>Your Skills (from profile)</h3>
               </div>
               
               <div style={styles.formGroup}>
                 <label style={styles.label}>
                   <span style={styles.labelIcon}><Icons.Tag /></span>
-                  Select your skills
+                  Technical Skills
                 </label>
-                <div style={styles.skillsGrid}>
-                  {commonSkills.map(skill => (
-                    <button
-                      key={skill}
-                      type="button"
-                      style={{
-                        ...styles.skillChip,
-                        ...(formData.skills.includes(skill) && styles.skillChipSelected)
-                      }}
-                      onClick={() => handleSkillsChange(skill)}
-                      className={`skill-chip ${formData.skills.includes(skill) ? 'selected' : ''}`}
-                    >
-                      {skill}
-                    </button>
-                  ))}
-                </div>
+                <SkillsDisplay skills={formData.skills} />
                 <div style={styles.helperText}>
                   <Icons.Info />
-                  Selected: {formData.skills.length} skills
+                  Skills are automatically fetched from your profile. Update them in your profile if needed.
                 </div>
               </div>
             </div>
@@ -871,7 +809,7 @@ const handleSubmit = async (e) => {
                 />
                 {errors.coverLetter && <span style={styles.errorText}><Icons.AlertCircle /> {errors.coverLetter}</span>}
                 <div style={styles.charCount}>
-                  {formData.coverLetter.length} / 50 minimum characters
+                  {formData.coverLetter.length} / 50 minimum characters (max 5000)
                 </div>
               </div>
             </div>
@@ -881,7 +819,7 @@ const handleSubmit = async (e) => {
               <div style={styles.formSectionHeader}>
                 <span style={styles.formSectionIcon}><Icons.FileText /></span>
                 <h3 style={styles.formSectionTitle}>
-                  Resume <span style={styles.required}>*</span>
+                  Resume URL <span style={styles.required}>*</span>
                 </h3>
               </div>
               
@@ -980,24 +918,6 @@ const handleSubmit = async (e) => {
                     />
                   </div>
                   {errors.githubUrl && <span style={styles.errorText}><Icons.AlertCircle /> {errors.githubUrl}</span>}
-                </div>
-
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>
-                    <span style={styles.labelIcon}><Icons.Calendar /></span>
-                    Start Date
-                  </label>
-                  <div style={styles.inputWrapper}>
-                    <input
-                      type="date"
-                      name="startDate"
-                      style={styles.input}
-                      value={formData.startDate}
-                      onChange={handleInputChange}
-                      className="form-input"
-                      min={new Date().toISOString().split('T')[0]}
-                    />
-                  </div>
                 </div>
               </div>
             </div>
@@ -1305,23 +1225,6 @@ const styles = {
     backgroundColor: "white",
     boxSizing: "border-box",
   },
-  select: {
-    width: "100%",
-    padding: "0.75rem 1rem",
-    borderRadius: "8px",
-    border: "1px solid #d1d5db",
-    fontSize: "0.95rem",
-    fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-    transition: "all 0.2s ease",
-    backgroundColor: "white",
-    cursor: "pointer",
-    appearance: "none",
-    backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E\")",
-    backgroundRepeat: "no-repeat",
-    backgroundPosition: "right 1rem center",
-    backgroundSize: "16px",
-    paddingRight: "2.5rem",
-  },
   textarea: {
     width: "100%",
     padding: "0.75rem 1rem",
@@ -1355,29 +1258,36 @@ const styles = {
     gap: "0.5rem",
     fontSize: "0.875rem",
   },
-  skillsGrid: {
+  skillsDisplayContainer: {
     display: "flex",
     flexWrap: "wrap",
     gap: "0.5rem",
-    padding: "0.5rem",
-    background: "#f9fafb",
+    padding: "1rem",
+    background: "#f8fafc",
     borderRadius: "8px",
-    border: "1px dashed #d1d5db",
-  },
-  skillChip: {
-    padding: "0.5rem 1rem",
-    background: "white",
     border: "1px solid #e2e8f0",
-    borderRadius: "20px",
-    fontSize: "0.875rem",
-    color: "#64748b",
-    cursor: "pointer",
-    transition: "all 0.2s ease",
+    minHeight: "3rem",
   },
-  skillChipSelected: {
+  skillDisplayTag: {
     background: "linear-gradient(135deg, #0073b1 0%, #00a0dc 100%)",
     color: "white",
-    borderColor: "transparent",
+    padding: "0.5rem 1rem",
+    borderRadius: "20px",
+    fontSize: "0.875rem",
+    fontWeight: 500,
+    border: "none",
+    boxShadow: "0 2px 4px rgba(0,115,177,0.2)",
+  },
+  noSkillsMessage: {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.5rem",
+    padding: "1rem",
+    background: "#fff3cd",
+    color: "#856404",
+    borderRadius: "8px",
+    border: "1px solid #ffeeba",
+    fontSize: "0.875rem",
   },
   helperText: {
     display: "flex",

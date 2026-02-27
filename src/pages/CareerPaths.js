@@ -27,6 +27,7 @@ const CareerPaths = () => {
 
   // New state for user applications
   const [userApplications, setUserApplications] = useState([]);
+  const [applicationsLoaded, setApplicationsLoaded] = useState(false);
 
   // Pagination state
   const [pagination, setPagination] = useState({
@@ -99,7 +100,7 @@ const CareerPaths = () => {
       'lump-sum': 'total'
     };
 
-    return `$${stipend.amount}/${periodMap[stipend.period] || 'month'}`;
+    return `₹${stipend.amount}/${periodMap[stipend.period] || 'month'}`;
   };
 
   const formatTimeline = (startDate, duration) => {
@@ -128,20 +129,37 @@ const CareerPaths = () => {
       const token = localStorage.getItem("token");
       const userId = localStorage.getItem("userId");
 
-      if (!token || !userId) return;
+      if (!token || !userId) {
+        setApplicationsLoaded(true);
+        return;
+      }
 
       const response = await axios.get(
-        `http://localhost:5000/api/applications/user/${userId}`,
+        `http://localhost:5000/api/applications/user`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
       if (response.data.success) {
         // Extract internship IDs from applications
-        const appliedInternshipIds = response.data.data.map(app => app.internshipId?._id || app.internshipId);
+        const appliedInternshipIds = response.data.data.map(app => {
+          // Handle both populated and unpopulated responses
+          if (app.internshipId && typeof app.internshipId === 'object') {
+            return app.internshipId._id;
+          } else if (app.internshipId) {
+            return app.internshipId;
+          } else if (app.internship && app.internship._id) {
+            return app.internship._id;
+          }
+          return null;
+        }).filter(id => id !== null);
+        
         setUserApplications(appliedInternshipIds);
+        console.log("Applied Internship IDs:", appliedInternshipIds);
       }
+      setApplicationsLoaded(true);
     } catch (error) {
       console.error("Error fetching applications:", error);
+      setApplicationsLoaded(true);
     }
   };
 
@@ -216,6 +234,7 @@ const CareerPaths = () => {
 
         const transformedInternships = filteredData.map(internship => ({
           id: internship._id,
+          _id: internship._id, // Keep _id for consistency
           title: internship.title,
           company: internship.companyName || "Tech Company",
           match: calculateMatch(internship.skills, userData.skills),
@@ -243,9 +262,10 @@ const CareerPaths = () => {
           contactEmail: internship.contactEmail,
           contactPhone: internship.contactPhone,
           positions: internship.positions,
-          applied: hasApplied(internship._id) // Add applied status
+          applied: userApplications.includes(internship._id) // Use the state directly
         }));
 
+        console.log("Transformed Internships:", transformedInternships.map(i => ({ title: i.title, applied: i.applied })));
         setInternships(transformedInternships);
 
         // Update pagination info from response headers or data
@@ -507,6 +527,13 @@ const CareerPaths = () => {
     console.log("🔴 showAiModal changed to:", showAiModal);
   }, [showAiModal]);
 
+  // Refetch internships when userApplications changes
+  useEffect(() => {
+    if (selectedCategory === "internships" && applicationsLoaded && !loading) {
+      fetchInternships(pagination.currentPage);
+    }
+  }, [userApplications, applicationsLoaded]);
+
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
@@ -530,7 +557,10 @@ const CareerPaths = () => {
             skills: { ...prev.skills, current: defaultData.skills }
           }));
 
+          // Fetch applications FIRST
           await fetchUserApplications();
+          
+          // Then fetch other data
           await fetchInternships(1);
           await fetchCourses();
           await fetchCareerPaths();
@@ -538,9 +568,10 @@ const CareerPaths = () => {
           return;
         }
 
-        // Fetch user applications first
+        // Fetch user applications FIRST
         await fetchUserApplications();
 
+        // Then fetch profile
         const profileResponse = await axios.get(
           `http://localhost:5000/api/profile/${userId}`,
           { headers: { Authorization: `Bearer ${token}` } }
@@ -563,6 +594,7 @@ const CareerPaths = () => {
             skills: { ...prev.skills, current: profile.technicalSkills || [] }
           }));
 
+          // Now fetch internships (will have userApplications populated)
           await fetchInternships(1);
           await fetchCourses();
           await fetchCareerPaths();
@@ -586,6 +618,7 @@ const CareerPaths = () => {
           skills: { ...prev.skills, current: defaultData.skills }
         }));
 
+        // Fetch applications FIRST even in error case
         await fetchUserApplications();
         await fetchInternships(1);
         await fetchCourses();
@@ -599,7 +632,7 @@ const CareerPaths = () => {
 
   // Refetch internships when filters change
   useEffect(() => {
-    if (selectedCategory === "internships" && !loading) {
+    if (selectedCategory === "internships" && applicationsLoaded && !loading) {
       fetchInternships(1); // Reset to first page when filters change
     }
   }, [
@@ -609,65 +642,69 @@ const CareerPaths = () => {
     filterOptions.stipendType,
     activeFilters,
     selectedCategory,
-    userData.skills
+    userData.skills,
+    applicationsLoaded
   ]);
 
-  // const handleSave = (item) => {
-  //   alert(`Saved: ${item.title} at ${item.company || item.platform}`);
-  //   closeDetailsModal();
-  // };
   const handleSave = (item) => {
-  try {
-    // Get existing saved internships
-    const saved = localStorage.getItem("savedInternships");
-    let savedInternships = saved ? JSON.parse(saved) : [];
-    
-    // Check if already saved (using _id for internships)
-    const isAlreadySaved = savedInternships.some(internship => 
-      internship._id === item.id || internship._id === item._id
-    );
-    
-    if (isAlreadySaved) {
-      alert("This internship is already saved!");
+    try {
+      // Get existing saved internships
+      const saved = localStorage.getItem("savedInternships");
+      let savedInternships = saved ? JSON.parse(saved) : [];
+      
+      // Check if already saved (using _id for internships)
+      const isAlreadySaved = savedInternships.some(internship => 
+        internship._id === item.id || internship._id === item._id
+      );
+      
+      if (isAlreadySaved) {
+        alert("This internship is already saved!");
+        return;
+      }
+      
+      // Create a clean internship object to save (using _id as key)
+      const internshipToSave = {
+        _id: item.id || item._id,  // Use id or _id
+        title: item.title,
+        companyName: item.company || item.companyName,
+        location: item.location,
+        stipend: item.stipend || {},
+        duration: item.duration,
+        experienceLevel: item.experienceLevel || item.experience,
+        description: item.description,
+        requirements: item.requirements,
+        applicationDeadline: item.applicationDeadline,
+        savedAt: new Date().toISOString(),
+        type: item.type,
+        skills: item.skills || [],
+        match: item.match
+      };
+      
+      // Add to saved internships
+      savedInternships.push(internshipToSave);
+      
+      // Save back to localStorage
+      localStorage.setItem("savedInternships", JSON.stringify(savedInternships));
+      
+      // Dispatch event to update dashboard
+      window.dispatchEvent(new Event('savedInternshipsUpdated'));
+      
+      alert(`"${item.title}" saved to your internships!`);
+      closeDetailsModal();
+    } catch (error) {
+      console.error("Error saving internship:", error);
+      alert("Failed to save internship. Please try again.");
+    }
+  };
+
+  // UPDATED: Handle apply with applied check
+  const handleApply = (item) => {
+    // Check if already applied before navigating
+    if (item.applied) {
+      alert("You have already applied for this internship");
       return;
     }
     
-    // Create a clean internship object to save (using _id as key)
-    const internshipToSave = {
-      _id: item.id || item._id,  // Use id or _id
-      title: item.title,
-      companyName: item.company || item.companyName,
-      location: item.location,
-      stipend: item.stipend || {},
-      duration: item.duration,
-      experienceLevel: item.experienceLevel || item.experience,
-      description: item.description,
-      requirements: item.requirements,
-      applicationDeadline: item.applicationDeadline,
-      savedAt: new Date().toISOString(),
-      type: item.type,
-      skills: item.skills || [],
-      match: item.match
-    };
-    
-    // Add to saved internships
-    savedInternships.push(internshipToSave);
-    
-    // Save back to localStorage
-    localStorage.setItem("savedInternships", JSON.stringify(savedInternships));
-    
-    // Dispatch event to update dashboard
-    window.dispatchEvent(new Event('savedInternshipsUpdated'));
-    
-    alert(`"${item.title}" saved to your internships!`);
-    closeDetailsModal();
-  } catch (error) {
-    console.error("Error saving internship:", error);
-    alert("Failed to save internship. Please try again.");
-  }
-};
-
-  const handleApply = (item) => {
     closeDetailsModal();
     navigate(`/apply/${item.id}`);
   };
@@ -1030,18 +1067,25 @@ const CareerPaths = () => {
       fontWeight: 600,
       zIndex: 2,
     },
-    appliedBadge: {
-      position: "absolute",
-      top: "0.75rem",
-      left: "0.75rem",
-      background: "linear-gradient(135deg, #94a3b8 0%, #64748b 100%)",
-      color: "white",
-      padding: "0.25rem 0.75rem",
-      borderRadius: "16px",
-      fontSize: "0.75rem",
-      fontWeight: 600,
-      zIndex: 2,
-    },
+    // Update the appliedBadge style to have a higher z-index and better positioning
+appliedBadge: {
+  position: "absolute",
+  top: "0.75rem",
+  left: "0.75rem",
+  background: "linear-gradient(135deg, #94a3b8 0%, #64748b 100%)",
+  color: "white",
+  padding: "0.25rem 0.75rem",
+  borderRadius: "16px",
+  fontSize: "0.75rem",
+  fontWeight: 600,
+  zIndex: 10, // Increased z-index to ensure it's above other elements
+},
+
+// Add this new style for the title container to create padding when badge is present
+titleWithBadge: {
+  marginLeft: "90px",
+  marginTop: "90px" // Creates space for the applied badge (adjust as needed)
+},
     cardContent: {
       padding: "1.25rem",
       display: "flex",
@@ -1057,6 +1101,7 @@ const CareerPaths = () => {
       color: "#2d3748",
       marginBottom: "0.25rem",
       lineHeight: 1.3,
+      marginTop: "2rem",
     },
     cardSubtitle: {
       fontSize: "0.875rem",
@@ -1668,7 +1713,7 @@ const CareerPaths = () => {
                 {/* Show applied badge if user has already applied */}
                 {item.applied && (
                   <div style={styles.appliedBadge}>
-                    ✓ Applied
+                    Applied
                   </div>
                 )}
 
@@ -1729,16 +1774,22 @@ const CareerPaths = () => {
 
                   <div style={styles.cardActions}>
                     <button
-                      style={styles.viewButton}
+                      style={{
+                        ...styles.viewButton,
+                        ...(item.applied && styles.disabledButton)
+                      }}
                       onClick={(e) => {
                         e.stopPropagation();
-                        openDetailsModal(item);
+                        if (!item.applied) {
+                          openDetailsModal(item);
+                        }
                       }}
-                      onMouseEnter={(e) => handleButtonHover(e, true)}
-                      onMouseLeave={(e) => handleButtonHover(e, false)}
+                      disabled={item.applied}
+                      onMouseEnter={(e) => !item.applied && handleButtonHover(e, true)}
+                      onMouseLeave={(e) => !item.applied && handleButtonHover(e, false)}
                       className="view-button"
                     >
-                      View Details
+                      {item.applied ? 'Already Applied' : 'View Details'}
                     </button>
                   </div>
                 </div>
@@ -1937,13 +1988,13 @@ const CareerPaths = () => {
               <div style={{
                 background: "#d1fae5",
                 color: "#065f46",
-                padding: "1rem",
+                padding: "5rem",
                 borderRadius: "8px",
                 marginBottom: "1rem",
                 textAlign: "center",
                 fontWeight: 600,
               }}>
-                ✓ You have already applied for this internship
+                You have already applied for this internship
               </div>
             )}
 
@@ -2039,7 +2090,11 @@ const CareerPaths = () => {
                   ...styles.modalPrimaryButton,
                   ...(selectedItem.applied && styles.modalDisabledButton)
                 }}
-                onClick={() => !selectedItem.applied && handleApply(selectedItem)}
+                onClick={() => {
+                  if (!selectedItem.applied) {
+                    handleApply(selectedItem);
+                  }
+                }}
                 disabled={selectedItem.applied}
                 onMouseEnter={(e) => !selectedItem.applied && handleButtonHover(e, true)}
                 onMouseLeave={(e) => !selectedItem.applied && handleButtonHover(e, false)}
@@ -2203,7 +2258,7 @@ const CareerPaths = () => {
                   {career.missingSkills && career.missingSkills.length > 0 && (
                     <div style={{ marginBottom: "1rem" }}>
                       <p style={{ fontSize: "1rem", fontWeight: 600, color: "#2d3748", marginBottom: "0.75rem" }}>
-                        🎯 Skills to Learn:
+                        Skills to Learn:
                       </p>
                       <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem" }}>
                         {career.missingSkills.map((skill, idx) => (
@@ -2229,7 +2284,7 @@ const CareerPaths = () => {
                   {career.recommendedCourses && career.recommendedCourses.length > 0 && (
                     <div style={{ marginBottom: "1rem" }}>
                       <p style={{ fontSize: "1rem", fontWeight: 600, color: "#2d3748", marginBottom: "0.75rem" }}>
-                        📚 Recommended Courses:
+                        Recommended Courses:
                       </p>
                       <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem" }}>
                         {career.recommendedCourses.map((course, idx) => (
