@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import ResumeOne from "../resumes/resumeOne";
-import ResumeTwo from "../resumes/resumeTwo";  // Add this
+import ResumeTwo from "../resumes/resumeTwo";
 import ResumeThree from "../resumes/resumeThree";
 
 const ResumeBuilder = () => {
@@ -47,6 +47,8 @@ const ResumeBuilder = () => {
       // Log the response to debug
       console.log("API Response:", response.data);
       console.log("API Response Data:", response.data.data);
+      console.log("Technical Skills:", response.data.data?.technicalSkills);
+      console.log("Soft Skills:", response.data.data?.softSkills);
       console.log("Certifications data:", response.data.data?.certifications);
 
       // Access the data property from the response
@@ -65,9 +67,12 @@ const ResumeBuilder = () => {
     }
   };
 
+  // Update the prepareResumeData function to properly handle skills
   const prepareResumeData = (profileData) => {
     console.log("Profile data for resume:", profileData);
     console.log("Certifications structure:", profileData?.certifications);
+    console.log("Technical Skills:", profileData?.technicalSkills);
+    console.log("Soft Skills:", profileData?.softSkills);
 
     // Helper function to extract certification names
     const getCertificationNames = (certs) => {
@@ -84,6 +89,12 @@ const ResumeBuilder = () => {
       return [];
     };
 
+    // Combine technical and soft skills for resume display
+    const allSkills = [
+      ...(Array.isArray(profileData?.technicalSkills) ? profileData.technicalSkills : []),
+      ...(Array.isArray(profileData?.softSkills) ? profileData.softSkills : [])
+    ];
+
     const data = {
       personalInfo: {
         name: profileData?.fullName || "",
@@ -95,70 +106,53 @@ const ResumeBuilder = () => {
         portfolio: profileData?.portfolio || "",
       },
       summary: profileData?.bio || "Experienced professional seeking new opportunities.",
-      skills: Array.isArray(profileData?.skills)
-        ? profileData.skills
-        : (profileData?.skills ? profileData.skills.split(",").map(s => s.trim()) : []),
+      skills: allSkills,
+      technicalSkills: profileData?.technicalSkills || [],
+      softSkills: profileData?.softSkills || [],
 
       // Handle experience data
-      experience: Array.isArray(profileData?.experience)
+      experience: Array.isArray(profileData?.experience) && profileData.experience.length > 0
         ? profileData.experience.map(exp => ({
-          title: exp.title || "",
-          company: exp.company || "",
-          duration: exp.duration || (exp.startDate && exp.endDate ? `${exp.startDate} - ${exp.endDate}` : ""),
-          description: exp.description || "",
-          location: exp.location || ""
-        }))
-        : [
-          {
-            title: "Frontend Developer",
-            company: "Tech Company Inc.",
-            duration: "2022 - Present",
-            description: "Developed responsive web applications using React and TypeScript.",
-            location: "San Francisco, CA"
-          }
-        ],
+            title: exp.title || "",
+            company: exp.company || "",
+            duration: exp.duration || (exp.startDate && exp.endDate ? `${exp.startDate} - ${exp.endDate}` : ""),
+            description: exp.description || "",
+            location: exp.location || ""
+          }))
+        : [],
 
       // Handle education data
-      education: Array.isArray(profileData?.education)
+      education: Array.isArray(profileData?.education) && profileData.education.length > 0
         ? profileData.education.map(edu => ({
-          degree: edu.degree || "",
-          institution: edu.institution || "",
-          duration: edu.duration || (edu.startDate && edu.endDate ? `${edu.startDate} - ${edu.endDate}` : ""),
-          description: edu.description || "",
-          location: edu.location || ""
-        }))
-        : [
-          {
-            degree: "Bachelor of Computer Science",
-            institution: "University of Technology",
-            duration: "2018 - 2022",
-            description: "Specialized in Software Engineering",
-            location: "New York, NY"
-          }
-        ],
+            degree: edu.degree || "",
+            institution: edu.institution || "",
+            duration: edu.duration || (edu.startYear && edu.endYear ? `${edu.startYear} - ${edu.endYear}` : 
+                      (edu.startYear && edu.currentlyStudying ? `${edu.startYear} - Present` : "")),
+            description: edu.description || "",
+            location: edu.location || "",
+            fieldOfStudy: edu.fieldOfStudy || "",
+            gradeCGPA: edu.gradeCGPA || "",
+            subjectsCourses: edu.subjectsCourses || ""
+          }))
+        : [],
 
       // Handle projects data
-      projects: Array.isArray(profileData?.projects)
+      projects: Array.isArray(profileData?.projects) && profileData.projects.length > 0
         ? profileData.projects.map(proj => ({
-          name: proj.name || "",
-          description: proj.description || "",
-          technologies: Array.isArray(proj.technologies) ? proj.technologies : []
-        }))
-        : [
-          {
-            name: "E-commerce Platform",
-            description: "Full-stack e-commerce application with React and Node.js",
-            technologies: ["React", "Node.js", "MongoDB", "Express"]
-          }
-        ],
+            name: proj.name || "",
+            description: proj.description || "",
+            technologies: Array.isArray(proj.technologies) ? proj.technologies : []
+          }))
+        : [],
 
-      // Handle certifications - extract names from objects
+      // Handle certifications
       certifications: getCertificationNames(profileData?.certifications),
 
-      languages: profileData?.languages || ["English", "Spanish"]
+      languages: profileData?.languages || ["English"]
     };
 
     console.log("Processed resume data:", data);
+    console.log("Skills in resume data:", data.skills);
     setResumeData(data);
   };
 
@@ -249,7 +243,7 @@ const ResumeBuilder = () => {
       link.href = url;
 
       // Get filename
-      let filename = `${user.fullName.replace(/\s+/g, '_')}_Resume.${format.toLowerCase()}`;
+      let filename = `${user.fullName?.replace(/\s+/g, '_') || 'resume'}_Resume.${format.toLowerCase()}`;
 
       // Try to get filename from headers
       const contentDisposition = response.headers['content-disposition'];
@@ -318,377 +312,343 @@ const ResumeBuilder = () => {
   };
 
   // CSS Styles
- const styles = {
-  container: {
-    fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif",
-    background: "#f8fafc",
-    minHeight: "100vh",
-    padding: "0.5rem 1.5rem",
-    maxWidth: "1300px",
-    margin: "0 auto",
-  },
-  header: {
-    marginBottom: "0.75rem",
-    marginTop: "-0.5rem",
-  },
-  title: {
-    fontSize: "clamp(1.5rem, 3.5vw, 2.5rem)",
-    fontWeight: 800,
-    color: "#2d3748",
-    marginBottom: "0.25rem", 
-    background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-    WebkitBackgroundClip: "text",
-    WebkitTextFillColor: "transparent",
-  },
-  subtitle: {
-    fontSize: "0.95rem",
-    color: "#718096",
-    marginBottom: "1.5rem",
-  },
-  loadingContainer: {
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "center",
-    alignItems: "center",
-    minHeight: "40vh", // Reduced from "50vh"
-    gap: "0.75rem", // Reduced from "1rem"
-  },
-  loadingSpinner: {
-    width: "40px", // Reduced from "50px"
-    height: "40px", // Reduced from "50px"
-    border: "4px solid #f3f3f3", // Reduced from "5px"
-    borderTop: "4px solid #667eea", // Reduced from "5px"
-    borderRadius: "50%",
-    animation: "spin 1s linear infinite",
-  },
-  mainContent: {
-    display: "grid",
-    gridTemplateColumns: "1fr 2fr",
-    gap: "1.5rem", // Reduced from "2rem"
-    marginBottom: "2rem", // Reduced from "3rem"
-  },
-  sidebar: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "1.5rem", // Reduced from "2rem"
-  },
-  sectionCard: {
-    background: "white",
-    padding: "1.25rem", // Reduced from "1.5rem"
-    borderRadius: "12px", // Reduced from "16px"
-    boxShadow: "0 3px 15px rgba(0, 0, 0, 0.05)", // Reduced from "0 4px 20px"
-  },
-  sectionTitle: {
-    fontSize: "1.1rem", // Reduced from "1.25rem"
-    fontWeight: 600,
-    color: "#2d3748",
-    marginBottom: "0.75rem", // Reduced from "1rem"
-    display: "flex",
-    alignItems: "center",
-    gap: "0.4rem", // Reduced from "0.5rem"
-  },
-  templatesGrid: {
-    display: "grid",
-    gridTemplateColumns: "1fr",
-    gap: "0.75rem", // Reduced from "1rem"
-  },
-  templateCard: {
-    padding: "1rem", // Reduced from "1.25rem"
-    borderRadius: "10px", // Reduced from "12px"
-    border: "2px solid #e2e8f0",
-    cursor: "pointer",
-    transition: "all 0.3s ease",
-    display: "flex",
-    alignItems: "center",
-    gap: "0.75rem", // Reduced from "1rem"
-  },
-  selectedTemplate: {
-    borderColor: "#667eea",
-    background: "rgba(102, 126, 234, 0.05)",
-    transform: "translateY(-2px)",
-    boxShadow: "0 6px 15px rgba(102, 126, 234, 0.15)", // Reduced from "0 8px 20px"
-  },
-  templateIcon: {
-    width: "36px", // Reduced from "40px"
-    height: "36px", // Reduced from "40px"
-    borderRadius: "8px", // Reduced from "10px"
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: "1.1rem", // Reduced from "1.25rem"
-  },
-  templateInfo: {
-    flex: 1,
-  },
-  templateName: {
-    fontWeight: 600,
-    color: "#2d3748",
-    marginBottom: "0.2rem", // Reduced from "0.25rem"
-    fontSize: "0.95rem", // Added smaller font
-  },
-  templateDescription: {
-    fontSize: "0.8rem", // Reduced from "0.875rem"
-    color: "#718096",
-  },
-  previewArea: {
-    background: "white",
-    borderRadius: "12px", // Reduced from "16px"
-    boxShadow: "0 3px 15px rgba(0, 0, 0, 0.05)", // Reduced from "0 4px 20px"
-    overflow: "hidden",
-    minHeight: "700px", // Reduced from "800px"
-    position: "relative",
-  },
-  previewHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: "1.25rem", // Reduced from "1.5rem"
-    borderBottom: "1px solid #e2e8f0",
-  },
-  previewTitle: {
-    fontSize: "1.1rem", // Reduced from "1.25rem"
-    fontWeight: 600,
-    color: "#2d3748",
-  },
-  previewControls: {
-    display: "flex",
-    gap: "0.6rem", // Reduced from "0.75rem"
-  },
-  controlButton: {
-    padding: "0.4rem 0.8rem", // Reduced from "0.5rem 1rem"
-    background: "#f1f5f9",
-    border: "none",
-    borderRadius: "6px", // Reduced from "8px"
-    fontSize: "0.8rem", // Reduced from "0.875rem"
-    fontWeight: 500,
-    cursor: "pointer",
-    transition: "all 0.2s ease",
-    display: "flex",
-    alignItems: "center",
-    gap: "0.4rem", // Reduced from "0.5rem"
-  },
-  generateButton: {
-    padding: "0.875rem 1.5rem", // Reduced from "1rem 2rem"
-    background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-    color: "white",
-    border: "none",
-    borderRadius: "10px", // Reduced from "12px"
-    fontSize: "0.95rem", // Reduced from "1rem"
-    fontWeight: 600,
-    cursor: "pointer",
-    transition: "all 0.3s ease",
-    display: "flex",
-    alignItems: "center",
-    gap: "0.6rem", // Reduced from "0.75rem"
-    marginTop: "auto",
-  },
-  loadingButton: {
-    opacity: 0.7,
-    cursor: "not-allowed",
-  },
-  resumePreview: {
-    padding: "1.5rem", // Reduced from "2rem"
-    height: "100%",
-    overflowY: "auto",
-  },
-  // Resume Template 1: Modern Professional - Smaller
-  resumeTemplate1: {
-    fontFamily: "'Segoe UI', system-ui, sans-serif",
-    maxWidth: "700px", // Reduced from "800px"
-    margin: "0 auto",
-    color: "#1a1a1a",
-    fontSize: "0.9rem", // Added base font size
-  },
-  resumeHeader1: {
-    background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-    color: "white",
-    padding: "1.5rem", // Reduced from "2rem"
-    borderRadius: "10px", // Reduced from "12px"
-    marginBottom: "1.5rem", // Reduced from "2rem"
-  },
-  resumeName1: {
-    fontSize: "2rem", // Reduced from "2.5rem"
-    fontWeight: 700,
-    marginBottom: "0.4rem", // Reduced from "0.5rem"
-  },
-  resumeTitle1: {
-    fontSize: "1.1rem", // Reduced from "1.25rem"
-    opacity: 0.9,
-    marginBottom: "0.75rem", // Reduced from "1rem"
-  },
-  resumeContact1: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: "0.75rem", // Reduced from "1rem"
-    fontSize: "0.8rem", // Reduced from "0.9rem"
-  },
-  contactItem: {
-    display: "flex",
-    alignItems: "center",
-    gap: "0.4rem", // Reduced from "0.5rem"
-  },
-  section1: {
-    marginBottom: "1.25rem", // Reduced from "1.5rem"
-  },
-  sectionTitle1: {
-    fontSize: "1.3rem", // Reduced from "1.5rem"
-    fontWeight: 600,
-    color: "#2d3748",
-    marginBottom: "0.75rem", // Reduced from "1rem"
-    paddingBottom: "0.4rem", // Reduced from "0.5rem"
-    borderBottom: "2px solid #667eea",
-  },
-  skillTag1: {
-    display: "inline-block",
-    background: "#e0e7ff",
-    color: "#3730a3",
-    padding: "0.4rem 0.8rem", // Reduced from "0.5rem 1rem"
-    borderRadius: "16px", // Reduced from "20px"
-    margin: "0.2rem", // Reduced from "0.25rem"
-    fontSize: "0.8rem", // Reduced from "0.875rem"
-  },
-  experienceItem1: {
-    marginBottom: "1rem", // Reduced from "1.25rem"
-  },
-  experienceHeader1: {
-    display: "flex",
-    justifyContent: "space-between",
-    marginBottom: "0.4rem", // Reduced from "0.5rem"
-  },
-  experienceTitle1: {
-    fontWeight: 600,
-    fontSize: "1rem", // Reduced from "1.1rem"
-    color: "#2d3748",
-  },
-  experienceCompany1: {
-    color: "#667eea",
-    fontWeight: 500,
-    fontSize: "0.9rem", // Added smaller font
-  },
-  experienceDuration1: {
-    color: "#718096",
-    fontSize: "0.8rem", // Reduced from "0.875rem"
-  },
-  experienceDescription1: {
-    color: "#4a5568",
-    lineHeight: 1.5,
-    fontSize: "0.9rem", // Added smaller font
-  },
-  // Resume Template 3: Classic
-  resumeTemplate3: {
-    fontFamily: "'Times New Roman', serif",
-    maxWidth: "700px", // Reduced from "800px"
-    margin: "0 auto",
-    color: "#1a1a1a",
-    fontSize: "0.9rem", // Added base font size
-  },
-  resumeHeader3: {
-    borderBottom: "3px solid #f59e0b",
-    paddingBottom: "0.75rem", // Reduced from "1rem"
-    marginBottom: "1.5rem", // Reduced from "2rem"
-  },
-  // Resume Template 4: Minimalist
-  resumeTemplate4: {
-    fontFamily: "'Helvetica Neue', Arial, sans-serif",
-    maxWidth: "700px", // Reduced from "800px"
-    margin: "0 auto",
-    color: "#1a1a1a",
-    fontSize: "0.9rem", // Added base font size
-  },
-  resumeHeader4: {
-    textAlign: "center",
-    marginBottom: "1.5rem", // Reduced from "2rem"
-    paddingBottom: "0.75rem", // Reduced from "1rem"
-    borderBottom: "1px solid #e2e8f0",
-  },
-  resumeName4: {
-    fontSize: "1.75rem", // Reduced from "2rem"
-    fontWeight: 300,
-    letterSpacing: "1px", // Reduced from "2px"
-    marginBottom: "0.4rem", // Reduced from "0.5rem"
-  },
-  actionButtons: {
-    display: "flex",
-    gap: "0.75rem", // Reduced from "1rem"
-    justifyContent: "center",
-    marginTop: "1.5rem", // Reduced from "2rem"
-    flexWrap: "wrap",
-  },
-  actionButtonPrimary: {
-    padding: "0.75rem 1.5rem", // Reduced from "0.875rem 2rem"
-    background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-    color: "white",
-    border: "none",
-    borderRadius: "8px", // Reduced from "10px"
-    fontSize: "0.9rem", // Reduced from "1rem"
-    fontWeight: 600,
-    cursor: "pointer",
-    transition: "all 0.3s ease",
-    display: "flex",
-    alignItems: "center",
-    gap: "0.6rem", // Reduced from "0.75rem"
-  },
-  actionButtonSecondary: {
-    padding: "0.75rem 1.5rem", // Reduced from "0.875rem 2rem"
-    background: "#f1f5f9",
-    color: "#4a5568",
-    border: "none",
-    borderRadius: "8px", // Reduced from "10px"
-    fontSize: "0.9rem", // Reduced from "1rem"
-    fontWeight: 600,
-    cursor: "pointer",
-    transition: "all 0.3s ease",
-    display: "flex",
-    alignItems: "center",
-    gap: "0.6rem", // Reduced from "0.75rem"
-  },
-  emptyState: {
-    textAlign: "center",
-    padding: "3rem 1.5rem", // Reduced from "4rem 2rem"
-    color: "#718096",
-  },
-  emptyIcon: {
-    fontSize: "3rem", // Reduced from "4rem"
-    marginBottom: "0.75rem", // Reduced from "1rem"
-    opacity: 0.5,
-  },
-  emptyTitle: {
-    fontSize: "1.25rem", // Reduced from "1.5rem"
-    fontWeight: 600,
-    marginBottom: "0.4rem", // Reduced from "0.5rem"
-    color: "#4a5568",
-  },
-};
+  const styles = {
+    container: {
+      fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif",
+      background: "#f8fafc",
+      minHeight: "100vh",
+      padding: "0.5rem 1.5rem",
+      maxWidth: "1300px",
+      margin: "0 auto",
+    },
+    header: {
+      marginBottom: "0.75rem",
+      marginTop: "-0.5rem",
+    },
+    title: {
+      fontSize: "clamp(1.5rem, 3.5vw, 2.5rem)",
+      fontWeight: 800,
+      color: "#2d3748",
+      marginBottom: "0.25rem", 
+      background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+      WebkitBackgroundClip: "text",
+      WebkitTextFillColor: "transparent",
+    },
+    subtitle: {
+      fontSize: "0.95rem",
+      color: "#718096",
+      marginBottom: "1.5rem",
+    },
+    loadingContainer: {
+      display: "flex",
+      flexDirection: "column",
+      justifyContent: "center",
+      alignItems: "center",
+      minHeight: "40vh",
+      gap: "0.75rem",
+    },
+    loadingSpinner: {
+      width: "40px",
+      height: "40px",
+      border: "4px solid #f3f3f3",
+      borderTop: "4px solid #667eea",
+      borderRadius: "50%",
+      animation: "spin 1s linear infinite",
+    },
+    mainContent: {
+      display: "grid",
+      gridTemplateColumns: "1fr 2fr",
+      gap: "1.5rem",
+      marginBottom: "2rem",
+    },
+    sidebar: {
+      display: "flex",
+      flexDirection: "column",
+      gap: "1.5rem",
+    },
+    sectionCard: {
+      background: "white",
+      padding: "1.25rem",
+      borderRadius: "12px",
+      boxShadow: "0 3px 15px rgba(0, 0, 0, 0.05)",
+    },
+    sectionTitle: {
+      fontSize: "1.1rem",
+      fontWeight: 600,
+      color: "#2d3748",
+      marginBottom: "0.75rem",
+      display: "flex",
+      alignItems: "center",
+      gap: "0.4rem",
+    },
+    templatesGrid: {
+      display: "grid",
+      gridTemplateColumns: "1fr",
+      gap: "0.75rem",
+    },
+    templateCard: {
+      padding: "1rem",
+      borderRadius: "10px",
+      border: "2px solid #e2e8f0",
+      cursor: "pointer",
+      transition: "all 0.3s ease",
+      display: "flex",
+      alignItems: "center",
+      gap: "0.75rem",
+    },
+    selectedTemplate: {
+      borderColor: "#667eea",
+      background: "rgba(102, 126, 234, 0.05)",
+      transform: "translateY(-2px)",
+      boxShadow: "0 6px 15px rgba(102, 126, 234, 0.15)",
+    },
+    templateIcon: {
+      width: "36px",
+      height: "36px",
+      borderRadius: "8px",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontSize: "1.1rem",
+    },
+    templateInfo: {
+      flex: 1,
+    },
+    templateName: {
+      fontWeight: 600,
+      color: "#2d3748",
+      marginBottom: "0.2rem",
+      fontSize: "0.95rem",
+    },
+    templateDescription: {
+      fontSize: "0.8rem",
+      color: "#718096",
+    },
+    previewArea: {
+      background: "white",
+      borderRadius: "12px",
+      boxShadow: "0 3px 15px rgba(0, 0, 0, 0.05)",
+      overflow: "hidden",
+      minHeight: "700px",
+      position: "relative",
+    },
+    previewHeader: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      padding: "1.25rem",
+      borderBottom: "1px solid #e2e8f0",
+    },
+    previewTitle: {
+      fontSize: "1.1rem",
+      fontWeight: 600,
+      color: "#2d3748",
+    },
+    previewControls: {
+      display: "flex",
+      gap: "0.6rem",
+    },
+    controlButton: {
+      padding: "0.4rem 0.8rem",
+      background: "#f1f5f9",
+      border: "none",
+      borderRadius: "6px",
+      fontSize: "0.8rem",
+      fontWeight: 500,
+      cursor: "pointer",
+      transition: "all 0.2s ease",
+      display: "flex",
+      alignItems: "center",
+      gap: "0.4rem",
+    },
+    generateButton: {
+      padding: "0.875rem 1.5rem",
+      background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+      color: "white",
+      border: "none",
+      borderRadius: "10px",
+      fontSize: "0.95rem",
+      fontWeight: 600,
+      cursor: "pointer",
+      transition: "all 0.3s ease",
+      display: "flex",
+      alignItems: "center",
+      gap: "0.6rem",
+      marginTop: "auto",
+    },
+    loadingButton: {
+      opacity: 0.7,
+      cursor: "not-allowed",
+    },
+    resumePreview: {
+      padding: "1.5rem",
+      height: "100%",
+      overflowY: "auto",
+    },
+    resumeTemplate1: {
+      fontFamily: "'Segoe UI', system-ui, sans-serif",
+      maxWidth: "700px",
+      margin: "0 auto",
+      color: "#1a1a1a",
+      fontSize: "0.9rem",
+    },
+    resumeHeader1: {
+      background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+      color: "white",
+      padding: "1.5rem",
+      borderRadius: "10px",
+      marginBottom: "1.5rem",
+    },
+    resumeName1: {
+      fontSize: "2rem",
+      fontWeight: 700,
+      marginBottom: "0.4rem",
+    },
+    resumeTitle1: {
+      fontSize: "1.1rem",
+      opacity: 0.9,
+      marginBottom: "0.75rem",
+    },
+    resumeContact1: {
+      display: "flex",
+      flexWrap: "wrap",
+      gap: "0.75rem",
+      fontSize: "0.8rem",
+    },
+    contactItem: {
+      display: "flex",
+      alignItems: "center",
+      gap: "0.4rem",
+    },
+    section1: {
+      marginBottom: "1.25rem",
+    },
+    sectionTitle1: {
+      fontSize: "1.3rem",
+      fontWeight: 600,
+      color: "#2d3748",
+      marginBottom: "0.75rem",
+      paddingBottom: "0.4rem",
+      borderBottom: "2px solid #667eea",
+    },
+    skillTag1: {
+      display: "inline-block",
+      background: "#e0e7ff",
+      color: "#3730a3",
+      padding: "0.4rem 0.8rem",
+      borderRadius: "16px",
+      margin: "0.2rem",
+      fontSize: "0.8rem",
+    },
+    experienceItem1: {
+      marginBottom: "1rem",
+    },
+    experienceHeader1: {
+      display: "flex",
+      justifyContent: "space-between",
+      marginBottom: "0.4rem",
+    },
+    experienceTitle1: {
+      fontWeight: 600,
+      fontSize: "1rem",
+      color: "#2d3748",
+    },
+    experienceCompany1: {
+      color: "#667eea",
+      fontWeight: 500,
+      fontSize: "0.9rem",
+    },
+    experienceDuration1: {
+      color: "#718096",
+      fontSize: "0.8rem",
+    },
+    experienceDescription1: {
+      color: "#4a5568",
+      lineHeight: 1.5,
+      fontSize: "0.9rem",
+    },
+    actionButtons: {
+      display: "flex",
+      gap: "0.75rem",
+      justifyContent: "center",
+      marginTop: "1.5rem",
+      flexWrap: "wrap",
+    },
+    actionButtonPrimary: {
+      padding: "0.75rem 1.5rem",
+      background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+      color: "white",
+      border: "none",
+      borderRadius: "8px",
+      fontSize: "0.9rem",
+      fontWeight: 600,
+      cursor: "pointer",
+      transition: "all 0.3s ease",
+      display: "flex",
+      alignItems: "center",
+      gap: "0.6rem",
+    },
+    actionButtonSecondary: {
+      padding: "0.75rem 1.5rem",
+      background: "#f1f5f9",
+      color: "#4a5568",
+      border: "none",
+      borderRadius: "8px",
+      fontSize: "0.9rem",
+      fontWeight: 600,
+      cursor: "pointer",
+      transition: "all 0.3s ease",
+      display: "flex",
+      alignItems: "center",
+      gap: "0.6rem",
+    },
+    emptyState: {
+      textAlign: "center",
+      padding: "3rem 1.5rem",
+      color: "#718096",
+    },
+    emptyIcon: {
+      fontSize: "3rem",
+      marginBottom: "0.75rem",
+      opacity: 0.5,
+    },
+    emptyTitle: {
+      fontSize: "1.25rem",
+      fontWeight: 600,
+      marginBottom: "0.4rem",
+      color: "#4a5568",
+    },
+  };
 
   const styleTag = `
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-  
-  .template-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.1); // Reduced from 4px 15px
-  }
-  
-  .generate-button:hover:not(:disabled) {
-    transform: translateY(-2px); // Reduced from -3px
-    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3); // Reduced from 10px 25px
-  }
-  
-  .control-button:hover {
-    background: #e2e8f0;
-  }
-  
-  .action-button-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 15px rgba(102, 126, 234, 0.3); // Reduced from 8px 20px
-  }
-  
-  .action-button-secondary:hover {
-    background: #e2e8f0;
-  }
-`;
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .template-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 3px 12px rgba(0, 0, 0, 0.1);
+    }
+    
+    .generate-button:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+    }
+    
+    .control-button:hover {
+      background: #e2e8f0;
+    }
+    
+    .action-button-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(102, 126, 234, 0.3);
+    }
+    
+    .action-button-secondary:hover {
+      background: #e2e8f0;
+    }
+  `;
 
   const handleTemplateHover = (e, isHover) => {
     if (!e.currentTarget.className.includes("selected")) {
@@ -706,203 +666,6 @@ const ResumeBuilder = () => {
     }
   };
 
-  // const renderResumePreview = () => {
-  //   if (!previewMode || !resumeData) {
-  //     return (
-  //       <div style={styles.emptyState}>
-  //         <div style={styles.emptyIcon}>📄</div>
-  //         <h3 style={styles.emptyTitle}>Resume Preview</h3>
-  //         <p>Select a template and click "Generate Resume" to see your resume here.</p>
-  //       </div>
-  //     );
-  //   }
-
-  //   switch (selectedTemplate) {
-  //     case 1:
-  //       return (
-  //         <div style={styles.resumeTemplate1}>
-  //           {/* Header */}
-  //           <div style={styles.resumeHeader1}>
-  //             <h1 style={styles.resumeName1}>{resumeData.personalInfo.name}</h1>
-  //             <p style={styles.resumeTitle1}>Frontend Developer & UI Specialist</p>
-  //             <div style={styles.resumeContact1}>
-  //               {resumeData.personalInfo.email && (
-  //                 <div style={styles.contactItem}>📧 {resumeData.personalInfo.email}</div>
-  //               )}
-  //               {resumeData.personalInfo.phone && (
-  //                 <div style={styles.contactItem}>📱 {resumeData.personalInfo.phone}</div>
-  //               )}
-  //               {resumeData.personalInfo.location && (
-  //                 <div style={styles.contactItem}>📍 {resumeData.personalInfo.location}</div>
-  //               )}
-  //               {resumeData.personalInfo.linkedin && (
-  //                 <div style={styles.contactItem}>💼 linkedin.com/in/username</div>
-  //               )}
-  //               {resumeData.personalInfo.github && (
-  //                 <div style={styles.contactItem}>🐙 github.com/username</div>
-  //               )}
-  //             </div>
-  //           </div>
-
-  //           {/* Summary */}
-  //           <div style={styles.section1}>
-  //             <h2 style={styles.sectionTitle1}>Professional Summary</h2>
-  //             <p style={{ lineHeight: 1.6, color: "#4a5568" }}>{resumeData.summary}</p>
-  //           </div>
-
-  //           {/* Skills */}
-  //           <div style={styles.section1}>
-  //             <h2 style={styles.sectionTitle1}>Technical Skills</h2>
-  //             <div>
-  //               {resumeData.skills.map((skill, index) => (
-  //                 <span key={index} style={styles.skillTag1}>{skill}</span>
-  //               ))}
-  //             </div>
-  //           </div>
-
-  //           {/* Experience */}
-  //           <div style={styles.section1}>
-  //             <h2 style={styles.sectionTitle1}>Work Experience</h2>
-  //             {resumeData.experience.map((exp, index) => (
-  //               <div key={index} style={styles.experienceItem1}>
-  //                 <div style={styles.experienceHeader1}>
-  //                   <div>
-  //                     <h3 style={styles.experienceTitle1}>{exp.title}</h3>
-  //                     <p style={styles.experienceCompany1}>{exp.company}</p>
-  //                   </div>
-  //                   <span style={styles.experienceDuration1}>{exp.duration}</span>
-  //                 </div>
-  //                 <p style={styles.experienceDescription1}>{exp.description}</p>
-  //               </div>
-  //             ))}
-  //           </div>
-
-  //           {/* Education */}
-  //           <div style={styles.section1}>
-  //             <h2 style={styles.sectionTitle1}>Education</h2>
-  //             {resumeData.education.map((edu, index) => (
-  //               <div key={index} style={styles.experienceItem1}>
-  //                 <div style={styles.experienceHeader1}>
-  //                   <div>
-  //                     <h3 style={styles.experienceTitle1}>{edu.degree}</h3>
-  //                     <p style={styles.experienceCompany1}>{edu.institution}</p>
-  //                   </div>
-  //                   <span style={styles.experienceDuration1}>{edu.duration}</span>
-  //                 </div>
-  //                 <p style={styles.experienceDescription1}>{edu.description}</p>
-  //               </div>
-  //             ))}
-  //           </div>
-
-  //           {/* Projects */}
-  //           <div style={styles.section1}>
-  //             <h2 style={styles.sectionTitle1}>Projects</h2>
-  //             {resumeData.projects.map((project, index) => (
-  //               <div key={index} style={styles.experienceItem1}>
-  //                 <h3 style={styles.experienceTitle1}>{project.name}</h3>
-  //                 <p style={styles.experienceDescription1}>{project.description}</p>
-  //                 <div style={{ marginTop: "0.5rem" }}>
-  //                   {project.technologies.map((tech, idx) => (
-  //                     <span key={idx} style={styles.skillTag1}>{tech}</span>
-  //                   ))}
-  //                 </div>
-  //               </div>
-  //             ))}
-  //           </div>
-  //         </div>
-  //       );
-
-  //     case 2:
-  //       // Use the imported ResumeOne component for template 2 (Creative)
-  //       return (
-  //         <div style={{ padding: '20px' }}>
-  //           <ResumeOne resumeData={resumeData} isPreview={true} />
-  //         </div>
-  //       );
-
-  //     case 3:
-  //       // Classic Template
-  //       return (
-  //         <div style={styles.resumeTemplate3}>
-  //           <div style={styles.resumeHeader3}>
-  //             <h1 style={{ fontSize: "2.5rem", fontWeight: 700, color: "#2d3748", marginBottom: "0.5rem" }}>
-  //               {resumeData.personalInfo.name}
-  //             </h1>
-  //             <p style={{ fontSize: "1.25rem", color: "#718096" }}>Classic Professional</p>
-  //             <div style={{ display: "flex", flexWrap: "wrap", gap: "1rem", marginTop: "1rem" }}>
-  //               {resumeData.personalInfo.email && <span>Email: {resumeData.personalInfo.email}</span>}
-  //               {resumeData.personalInfo.phone && <span>Phone: {resumeData.personalInfo.phone}</span>}
-  //             </div>
-  //           </div>
-
-  //           <div style={{ marginBottom: "1.5rem" }}>
-  //             <h2 style={{ fontSize: "1.5rem", fontWeight: 600, borderBottom: "1px solid #ccc", paddingBottom: "0.5rem" }}>
-  //               Professional Summary
-  //             </h2>
-  //             <p>{resumeData.summary}</p>
-  //           </div>
-
-  //           <div style={{ marginBottom: "1.5rem" }}>
-  //             <h2 style={{ fontSize: "1.5rem", fontWeight: 600, borderBottom: "1px solid #ccc", paddingBottom: "0.5rem" }}>
-  //               Experience
-  //             </h2>
-  //             {resumeData.experience.map((exp, index) => (
-  //               <div key={index} style={{ marginBottom: "1rem" }}>
-  //                 <div style={{ display: "flex", justifyContent: "space-between" }}>
-  //                   <h3 style={{ fontWeight: 600 }}>{exp.title} - {exp.company}</h3>
-  //                   <span>{exp.duration}</span>
-  //                 </div>
-  //                 <p>{exp.description}</p>
-  //               </div>
-  //             ))}
-  //           </div>
-  //         </div>
-  //       );
-
-  //     case 4:
-  //       // Minimalist Template
-  //       return (
-  //         <div style={styles.resumeTemplate4}>
-  //           <div style={styles.resumeHeader4}>
-  //             <h1 style={styles.resumeName4}>{resumeData.personalInfo.name}</h1>
-  //             <p style={{ color: "#718096", fontSize: "1rem" }}>Minimalist Professional</p>
-  //             <div style={{ marginTop: "1rem", fontSize: "0.9rem", color: "#4a5568" }}>
-  //               {resumeData.personalInfo.email} • {resumeData.personalInfo.phone} • {resumeData.personalInfo.location}
-  //             </div>
-  //           </div>
-
-  //           <div style={{ marginBottom: "2rem" }}>
-  //             <h2 style={{ fontSize: "1.2rem", fontWeight: 500, marginBottom: "0.5rem" }}>SUMMARY</h2>
-  //             <p style={{ color: "#4a5568", lineHeight: 1.6 }}>{resumeData.summary}</p>
-  //           </div>
-
-  //           <div style={{ marginBottom: "2rem" }}>
-  //             <h2 style={{ fontSize: "1.2rem", fontWeight: 500, marginBottom: "0.5rem" }}>EXPERIENCE</h2>
-  //             {resumeData.experience.map((exp, index) => (
-  //               <div key={index} style={{ marginBottom: "1rem" }}>
-  //                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
-  //                   <span style={{ fontWeight: 500 }}>{exp.title}</span>
-  //                   <span style={{ color: "#718096", fontSize: "0.9rem" }}>{exp.duration}</span>
-  //                 </div>
-  //                 <div style={{ color: "#4a5568", fontSize: "0.9rem", marginBottom: "0.25rem" }}>{exp.company}</div>
-  //                 <div style={{ color: "#718096", fontSize: "0.85rem" }}>{exp.description}</div>
-  //               </div>
-  //             ))}
-  //           </div>
-  //         </div>
-  //       );
-
-  //     default:
-  //       return (
-  //         <div style={styles.resumeTemplate1}>
-  //           <div style={styles.resumeHeader1}>
-  //             <h1 style={styles.resumeName1}>{resumeData.personalInfo.name}</h1>
-  //             <p style={styles.resumeTitle1}>Professional Resume</p>
-  //           </div>
-  //         </div>
-  //       );
-  //   }
-  // };
   const renderResumePreview = () => {
     if (!previewMode || !resumeData) {
       return (
@@ -921,7 +684,11 @@ const ResumeBuilder = () => {
             {/* Header */}
             <div style={styles.resumeHeader1}>
               <h1 style={styles.resumeName1}>{resumeData.personalInfo.name}</h1>
-              <p style={styles.resumeTitle1}>Frontend Developer & UI Specialist</p>
+              <p style={styles.resumeTitle1}>
+                {resumeData.technicalSkills?.length > 0 
+                  ? resumeData.technicalSkills.slice(0, 3).join(" • ") 
+                  : "Professional"}
+              </p>
               <div style={styles.resumeContact1}>
                 {resumeData.personalInfo.email && (
                   <div style={styles.contactItem}>📧 {resumeData.personalInfo.email}</div>
@@ -933,85 +700,108 @@ const ResumeBuilder = () => {
                   <div style={styles.contactItem}>📍 {resumeData.personalInfo.location}</div>
                 )}
                 {resumeData.personalInfo.linkedin && (
-                  <div style={styles.contactItem}>💼 linkedin.com/in/username</div>
+                  <div style={styles.contactItem}>💼 {resumeData.personalInfo.linkedin}</div>
                 )}
                 {resumeData.personalInfo.github && (
-                  <div style={styles.contactItem}>🐙 github.com/username</div>
+                  <div style={styles.contactItem}>🐙 {resumeData.personalInfo.github}</div>
                 )}
               </div>
             </div>
 
             {/* Summary */}
-            <div style={styles.section1}>
-              <h2 style={styles.sectionTitle1}>Professional Summary</h2>
-              <p style={{ lineHeight: 1.6, color: "#4a5568" }}>{resumeData.summary}</p>
-            </div>
+            {resumeData.summary && (
+              <div style={styles.section1}>
+                <h2 style={styles.sectionTitle1}>Professional Summary</h2>
+                <p style={{ lineHeight: 1.6, color: "#4a5568" }}>{resumeData.summary}</p>
+              </div>
+            )}
 
             {/* Skills */}
-            <div style={styles.section1}>
-              <h2 style={styles.sectionTitle1}>Technical Skills</h2>
-              <div>
-                {resumeData.skills.map((skill, index) => (
-                  <span key={index} style={styles.skillTag1}>{skill}</span>
-                ))}
+            {resumeData.skills && resumeData.skills.length > 0 && (
+              <div style={styles.section1}>
+                <h2 style={styles.sectionTitle1}>Skills</h2>
+                <div>
+                  {resumeData.skills.map((skill, index) => (
+                    <span key={index} style={styles.skillTag1}>{skill}</span>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Experience */}
-            <div style={styles.section1}>
-              <h2 style={styles.sectionTitle1}>Work Experience</h2>
-              {resumeData.experience.map((exp, index) => (
-                <div key={index} style={styles.experienceItem1}>
-                  <div style={styles.experienceHeader1}>
-                    <div>
-                      <h3 style={styles.experienceTitle1}>{exp.title}</h3>
-                      <p style={styles.experienceCompany1}>{exp.company}</p>
+            {resumeData.experience && resumeData.experience.length > 0 && (
+              <div style={styles.section1}>
+                <h2 style={styles.sectionTitle1}>Work Experience</h2>
+                {resumeData.experience.map((exp, index) => (
+                  <div key={index} style={styles.experienceItem1}>
+                    <div style={styles.experienceHeader1}>
+                      <div>
+                        <h3 style={styles.experienceTitle1}>{exp.title}</h3>
+                        <p style={styles.experienceCompany1}>{exp.company}</p>
+                      </div>
+                      {exp.duration && <span style={styles.experienceDuration1}>{exp.duration}</span>}
                     </div>
-                    <span style={styles.experienceDuration1}>{exp.duration}</span>
+                    {exp.description && <p style={styles.experienceDescription1}>{exp.description}</p>}
                   </div>
-                  <p style={styles.experienceDescription1}>{exp.description}</p>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
 
             {/* Education */}
-            <div style={styles.section1}>
-              <h2 style={styles.sectionTitle1}>Education</h2>
-              {resumeData.education.map((edu, index) => (
-                <div key={index} style={styles.experienceItem1}>
-                  <div style={styles.experienceHeader1}>
-                    <div>
-                      <h3 style={styles.experienceTitle1}>{edu.degree}</h3>
-                      <p style={styles.experienceCompany1}>{edu.institution}</p>
+            {resumeData.education && resumeData.education.length > 0 && (
+              <div style={styles.section1}>
+                <h2 style={styles.sectionTitle1}>Education</h2>
+                {resumeData.education.map((edu, index) => (
+                  <div key={index} style={styles.experienceItem1}>
+                    <div style={styles.experienceHeader1}>
+                      <div>
+                        <h3 style={styles.experienceTitle1}>{edu.degree || edu.fieldOfStudy || "Education"}</h3>
+                        <p style={styles.experienceCompany1}>{edu.institution}</p>
+                      </div>
+                      {edu.duration && <span style={styles.experienceDuration1}>{edu.duration}</span>}
                     </div>
-                    <span style={styles.experienceDuration1}>{edu.duration}</span>
+                    {edu.gradeCGPA && <p style={styles.experienceDescription1}>CGPA: {edu.gradeCGPA}</p>}
+                    {edu.subjectsCourses && <p style={styles.experienceDescription1}>{edu.subjectsCourses}</p>}
                   </div>
-                  <p style={styles.experienceDescription1}>{edu.description}</p>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
 
             {/* Projects */}
-            <div style={styles.section1}>
-              <h2 style={styles.sectionTitle1}>Projects</h2>
-              {resumeData.projects.map((project, index) => (
-                <div key={index} style={styles.experienceItem1}>
-                  <h3 style={styles.experienceTitle1}>{project.name}</h3>
-                  <p style={styles.experienceDescription1}>{project.description}</p>
-                  <div style={{ marginTop: "0.5rem" }}>
-                    {project.technologies.map((tech, idx) => (
-                      <span key={idx} style={styles.skillTag1}>{tech}</span>
-                    ))}
+            {resumeData.projects && resumeData.projects.length > 0 && (
+              <div style={styles.section1}>
+                <h2 style={styles.sectionTitle1}>Projects</h2>
+                {resumeData.projects.map((project, index) => (
+                  <div key={index} style={styles.experienceItem1}>
+                    <h3 style={styles.experienceTitle1}>{project.name}</h3>
+                    <p style={styles.experienceDescription1}>{project.description}</p>
+                    {project.technologies && project.technologies.length > 0 && (
+                      <div style={{ marginTop: "0.5rem" }}>
+                        {project.technologies.map((tech, idx) => (
+                          <span key={idx} style={styles.skillTag1}>{tech}</span>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
+
+            {/* Certifications */}
+            {resumeData.certifications && resumeData.certifications.length > 0 && (
+              <div style={styles.section1}>
+                <h2 style={styles.sectionTitle1}>Certifications</h2>
+                <ul style={{ paddingLeft: "1.5rem", color: "#4a5568" }}>
+                  {resumeData.certifications.map((cert, index) => (
+                    <li key={index}>{cert}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         );
 
-
       case 2:
-        // Creative - Uses ResumeOne
         return (
           <div style={{ padding: '20px' }}>
             <ResumeOne resumeData={resumeData} isPreview={true} />
@@ -1019,7 +809,6 @@ const ResumeBuilder = () => {
         );
 
       case 3:
-        // Classic - Uses ResumeTwo
         return (
           <div style={{ padding: '20px' }}>
             <ResumeTwo resumeData={resumeData} isPreview={true} />
@@ -1027,7 +816,6 @@ const ResumeBuilder = () => {
         );
 
       case 4:
-        // Minimalist - Uses ResumeThree
         return (
           <div style={{ padding: '20px' }}>
             <ResumeThree resumeData={resumeData} isPreview={true} />
@@ -1135,7 +923,6 @@ const ResumeBuilder = () => {
           </div>
 
           {/* Profile Data Section */}
-          {/* Profile Data Section */}
           <div style={styles.sectionCard}>
             <h2 style={styles.sectionTitle}>
               <span>👤</span> Your Profile Data
@@ -1143,7 +930,13 @@ const ResumeBuilder = () => {
             <div style={{ fontSize: "0.9rem", color: "#4a5568" }}>
               <p><strong>Name:</strong> {user.fullName || "Not set"}</p>
               <p><strong>Email:</strong> {user.email || "Not set"}</p>
-              <p><strong>Skills:</strong> {Array.isArray(user.skills) ? user.skills.join(", ") : user.skills || "Not set"}</p>
+              <p><strong>Technical Skills:</strong> {user.technicalSkills?.length > 0 ? user.technicalSkills.join(", ") : "Not set"}</p>
+              <p><strong>Soft Skills:</strong> {user.softSkills?.length > 0 ? user.softSkills.join(", ") : "Not set"}</p>
+              {(!user.technicalSkills?.length && !user.softSkills?.length) && (
+                <p style={{ color: "#f59e0b", fontSize: "0.85rem", marginTop: "0.5rem" }}>
+                  ⚠️ No skills found. Please update your profile.
+                </p>
+              )}
               <p style={{ marginTop: "1rem" }}>
                 <button
                   style={{
@@ -1182,7 +975,7 @@ const ResumeBuilder = () => {
               </>
             ) : (
               <>
-                🚀 Generate Resume
+                Generate Resume
               </>
             )}
           </button>
@@ -1194,37 +987,6 @@ const ResumeBuilder = () => {
             <h2 style={styles.previewTitle}>
               {previewMode ? `Resume Preview - ${templates.find(t => t.id === selectedTemplate)?.name}` : "Preview Area"}
             </h2>
-            {/* {previewMode && (
-              <div style={styles.previewControls}>
-                <button
-                  style={styles.controlButton}
-                  onClick={() => downloadResume("PDF")}
-                  onMouseEnter={(e) => handleButtonHover(e, true, false)}
-                  onMouseLeave={(e) => handleButtonHover(e, false, false)}
-                  className="control-button"
-                >
-                  📥 PDF
-                </button>
-                <button
-                  style={styles.controlButton}
-                  onClick={() => downloadResume("DOCX")}
-                  onMouseEnter={(e) => handleButtonHover(e, true, false)}
-                  onMouseLeave={(e) => handleButtonHover(e, false, false)}
-                  className="control-button"
-                >
-                  📝 Word
-                </button>
-                <button
-                  style={styles.controlButton}
-                  onClick={shareResume}
-                  onMouseEnter={(e) => handleButtonHover(e, true, false)}
-                  onMouseLeave={(e) => handleButtonHover(e, false, false)}
-                  className="control-button"
-                >
-                  🔗 Share
-                </button>
-              </div>
-            )} */}
           </div>
 
           <div style={styles.resumePreview}>
@@ -1263,15 +1025,6 @@ const ResumeBuilder = () => {
           >
             Share Resume
           </button>
-          {/* <button
-            style={styles.actionButtonPrimary}
-            onClick={() => setPreviewMode(false)}
-            onMouseEnter={(e) => handleButtonHover(e, true, true)}
-            onMouseLeave={(e) => handleButtonHover(e, false, true)}
-            className="action-button-primary"
-          >
-            Edit Template
-          </button> */}
         </div>
       )}
     </div>

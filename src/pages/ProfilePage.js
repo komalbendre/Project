@@ -1101,7 +1101,7 @@ const ProfilePage = () => {
             </div>
           )}
 
-          {/* Work Experience */}
+          {/* Work Experience
           {user?.experience?.length > 0 && user.experience.some(exp => exp.title || exp.company) && (
             <div style={styles.section}>
               <h2 style={styles.sectionTitle}>
@@ -1129,7 +1129,7 @@ const ProfilePage = () => {
                 </div>
               ))}
             </div>
-          )}
+          )} */}
 
           {/* Projects */}
           {user?.projects?.length > 0 && user.projects.some(proj => proj.name) && (

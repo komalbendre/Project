@@ -25,6 +25,9 @@ const CareerPaths = () => {
     searchTerm: ""
   });
 
+  // New state for user applications
+  const [userApplications, setUserApplications] = useState([]);
+
   // Pagination state
   const [pagination, setPagination] = useState({
     currentPage: 1,
@@ -119,6 +122,34 @@ const CareerPaths = () => {
     return "Check Requirements";
   };
 
+  // Fetch user applications
+  const fetchUserApplications = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const userId = localStorage.getItem("userId");
+
+      if (!token || !userId) return;
+
+      const response = await axios.get(
+        `http://localhost:5000/api/applications/user/${userId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (response.data.success) {
+        // Extract internship IDs from applications
+        const appliedInternshipIds = response.data.data.map(app => app.internshipId?._id || app.internshipId);
+        setUserApplications(appliedInternshipIds);
+      }
+    } catch (error) {
+      console.error("Error fetching applications:", error);
+    }
+  };
+
+  // Check if user has applied to a specific internship
+  const hasApplied = (internshipId) => {
+    return userApplications.includes(internshipId);
+  };
+
   // Fetch internships from backend with pagination
   const fetchInternships = async (page = pagination.currentPage) => {
     try {
@@ -211,7 +242,8 @@ const CareerPaths = () => {
           skills: internship.skills || [],
           contactEmail: internship.contactEmail,
           contactPhone: internship.contactPhone,
-          positions: internship.positions
+          positions: internship.positions,
+          applied: hasApplied(internship._id) // Add applied status
         }));
 
         setInternships(transformedInternships);
@@ -498,12 +530,16 @@ const CareerPaths = () => {
             skills: { ...prev.skills, current: defaultData.skills }
           }));
 
+          await fetchUserApplications();
           await fetchInternships(1);
           await fetchCourses();
           await fetchCareerPaths();
           setLoading(false);
           return;
         }
+
+        // Fetch user applications first
+        await fetchUserApplications();
 
         const profileResponse = await axios.get(
           `http://localhost:5000/api/profile/${userId}`,
@@ -550,6 +586,7 @@ const CareerPaths = () => {
           skills: { ...prev.skills, current: defaultData.skills }
         }));
 
+        await fetchUserApplications();
         await fetchInternships(1);
         await fetchCourses();
         await fetchCareerPaths();
@@ -993,6 +1030,18 @@ const CareerPaths = () => {
       fontWeight: 600,
       zIndex: 2,
     },
+    appliedBadge: {
+      position: "absolute",
+      top: "0.75rem",
+      left: "0.75rem",
+      background: "linear-gradient(135deg, #94a3b8 0%, #64748b 100%)",
+      color: "white",
+      padding: "0.25rem 0.75rem",
+      borderRadius: "16px",
+      fontSize: "0.75rem",
+      fontWeight: 600,
+      zIndex: 2,
+    },
     cardContent: {
       padding: "1.25rem",
       display: "flex",
@@ -1062,6 +1111,11 @@ const CareerPaths = () => {
       fontWeight: 600,
       cursor: "pointer",
       transition: "all 0.2s ease",
+    },
+    disabledButton: {
+      background: "#94a3b8",
+      cursor: "not-allowed",
+      opacity: 0.7,
     },
     // Pagination styles
     paginationContainer: {
@@ -1267,6 +1321,11 @@ const CareerPaths = () => {
       cursor: "pointer",
       transition: "all 0.2s ease",
     },
+    modalDisabledButton: {
+      background: "#94a3b8",
+      cursor: "not-allowed",
+      opacity: 0.7,
+    },
   };
 
   const styleTag = `
@@ -1281,10 +1340,16 @@ const CareerPaths = () => {
       border-color: #c3dafe;
     }
     
-    .view-button:hover {
+    .view-button:hover:not(:disabled) {
       background: linear-gradient(135deg, #5a67d8 0%, #6b46a1 100%);
       transform: translateY(-1px);
       box-shadow: 0 4px 12px rgba(102, 126, 234, 0.25);
+    }
+    
+    .view-button:disabled {
+      background: #94a3b8;
+      cursor: not-allowed;
+      opacity: 0.7;
     }
     
     .tab:hover:not(.active) {
@@ -1300,7 +1365,7 @@ const CareerPaths = () => {
       color: white;
     }
     
-    .modal-primary-button:hover {
+    .modal-primary-button:hover:not(:disabled) {
       background: linear-gradient(135deg, #5a67d8 0%, #6b46a1 100%);
       transform: translateY(-1px);
       box-shadow: 0 4px 12px rgba(102, 126, 234, 0.25);
@@ -1599,6 +1664,13 @@ const CareerPaths = () => {
                 <div style={styles.matchBadge}>
                   {item.match}% Match
                 </div>
+                
+                {/* Show applied badge if user has already applied */}
+                {item.applied && (
+                  <div style={styles.appliedBadge}>
+                    ✓ Applied
+                  </div>
+                )}
 
                 <div style={styles.cardContent}>
                   <div style={styles.cardHeader}>
@@ -1656,61 +1728,18 @@ const CareerPaths = () => {
                   </div>
 
                   <div style={styles.cardActions}>
-                    <div style={{ display: "flex", gap: "8px" }}>
-                      <button
-                        style={{
-                          ...styles.viewButton,
-                          flex: 1,
-                          background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                        }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openDetailsModal(item);
-                        }}
-                        onMouseEnter={(e) => handleButtonHover(e, true)}
-                        onMouseLeave={(e) => handleButtonHover(e, false)}
-                        className="view-button"
-                      >
-                        View Details
-                      </button>
-                      {selectedCategory === "career-paths" && (
-                        <button
-                          style={{
-                            padding: "0.625rem 1rem",
-                            background: "#10b981",
-                            color: "white",
-                            border: "none",
-                            borderRadius: "8px",
-                            fontSize: "0.875rem",
-                            fontWeight: 600,
-                            cursor: "pointer",
-                            transition: "all 0.2s ease",
-                            minWidth: "40px",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                          }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            saveCareerPath(item);
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.background = "#059669";
-                            e.currentTarget.style.transform = "translateY(-1px)";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.background = "#10b981";
-                            e.currentTarget.style.transform = "translateY(0)";
-                          }}
-                          title="Save Career Path"
-                        >
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                            <circle cx="12" cy="7" r="4" />
-                          </svg>
-                        </button>
-                      )}
-                    </div>
+                    <button
+                      style={styles.viewButton}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openDetailsModal(item);
+                      }}
+                      onMouseEnter={(e) => handleButtonHover(e, true)}
+                      onMouseLeave={(e) => handleButtonHover(e, false)}
+                      className="view-button"
+                    >
+                      View Details
+                    </button>
                   </div>
                 </div>
               </div>
@@ -1904,6 +1933,20 @@ const CareerPaths = () => {
               </div>
             </div>
 
+            {selectedItem.applied && (
+              <div style={{
+                background: "#d1fae5",
+                color: "#065f46",
+                padding: "1rem",
+                borderRadius: "8px",
+                marginBottom: "1rem",
+                textAlign: "center",
+                fontWeight: 600,
+              }}>
+                ✓ You have already applied for this internship
+              </div>
+            )}
+
             <div style={styles.modalGrid}>
               <div style={styles.modalDetailItem}>
                 <span style={styles.modalDetailLabel}>Stipend</span>
@@ -1992,21 +2035,17 @@ const CareerPaths = () => {
                 Save
               </button>
               <button
-                style={styles.modalPrimaryButton}
-                onClick={() => handleApply(selectedItem)}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "linear-gradient(135deg, #5a67d8 0%, #6b46a1 100%)";
-                  e.currentTarget.style.transform = "translateY(-1px)";
-                  e.currentTarget.style.boxShadow = "0 4px 12px rgba(102, 126, 234, 0.25)";
+                style={{
+                  ...styles.modalPrimaryButton,
+                  ...(selectedItem.applied && styles.modalDisabledButton)
                 }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "linear-gradient(135deg, #667eea 0%, #764ba2 100%)";
-                  e.currentTarget.style.transform = "translateY(0)";
-                  e.currentTarget.style.boxShadow = "none";
-                }}
+                onClick={() => !selectedItem.applied && handleApply(selectedItem)}
+                disabled={selectedItem.applied}
+                onMouseEnter={(e) => !selectedItem.applied && handleButtonHover(e, true)}
+                onMouseLeave={(e) => !selectedItem.applied && handleButtonHover(e, false)}
                 className="modal-primary-button"
               >
-                Apply Now
+                {selectedItem.applied ? 'Already Applied' : 'Apply Now'}
               </button>
               <button
                 style={styles.modalCloseButton}

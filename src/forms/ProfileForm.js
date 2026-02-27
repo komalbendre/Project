@@ -549,7 +549,7 @@ const ProfileForm = () => {
     softSkills: [],
     linkedin: "",
     github: "",
-    experience: [{ title: "", company: "", description: "" }],
+    // experience: [{ title: "", company: "", description: "" }],
     education: [{
       institution: "",
       degree: "Bachelor of Science - BS", // Set as default
@@ -655,7 +655,7 @@ const ProfileForm = () => {
               softSkills: draftData.softSkills || [],
               linkedin: draftData.linkedin || "",
               github: draftData.github || "",
-              experience: draftData.experience?.length ? draftData.experience : [{ title: "", company: "", description: "" }],
+              // experience: draftData.experience?.length ? draftData.experience : [{ title: "", company: "", description: "" }],
               education: educationData,
               projects: draftData.projects?.length ? draftData.projects : [{ name: "", description: "" }],
               certifications: draftData.certifications?.length ? draftData.certifications : [{ name: "", issuer: "" }],
@@ -742,7 +742,7 @@ const ProfileForm = () => {
               softSkills: softSkills,           // Use soft skills separately
               linkedin: profileData.linkedin || "",
               github: profileData.github || "",
-              experience: profileData.experience?.length ? profileData.experience : [{ title: "", company: "", description: "" }],
+              // experience: profileData.experience?.length ? profileData.experience : [{ title: "", company: "", description: "" }],
               education: educationData,
               projects: profileData.projects?.length ? profileData.projects : [{ name: "", description: "" }],
               certifications: profileData.certifications?.length ? profileData.certifications : [{ name: "", issuer: "" }],
@@ -762,7 +762,7 @@ const ProfileForm = () => {
             softSkills: [],
             linkedin: "",
             github: "",
-            experience: [{ title: "", company: "", description: "" }],
+            // experience: [{ title: "", company: "", description: "" }],
             education: [{
               institution: "",
               degree: "Bachelor of Science - BS",
@@ -791,7 +791,7 @@ const ProfileForm = () => {
           softSkills: [],
           linkedin: "",
           github: "",
-          experience: [{ title: "", company: "", description: "" }],
+          // experience: [{ title: "", company: "", description: "" }],
           education: [{
             institution: "",
             degree: "Bachelor of Science - BS",
@@ -904,7 +904,7 @@ const ProfileForm = () => {
         linkedin: profile.linkedin,
         github: profile.github,
         location: location,
-        experience: profile.experience,
+        // experience: profile.experience,
         education: profile.education,
         projects: profile.projects,
         certifications: profile.certifications
@@ -1142,7 +1142,7 @@ const ProfileForm = () => {
 
   // Default objects for each section
   const defaultObjects = {
-    experience: { title: "", company: "", description: "" },
+    // experience: { title: "", company: "", description: "" },
     education: {
       institution: "",
       degree: "Bachelor of Science - BS", // Set as default
@@ -1162,7 +1162,7 @@ const ProfileForm = () => {
     { id: "basic", label: "Basic Info", icon: <Icons.User /> },
     { id: "about", label: "About & Skills", icon: <Icons.FileText /> },
     { id: "education", label: "Education", icon: <Icons.GraduationCap /> },
-    { id: "experience", label: "Experience", icon: <Icons.Building /> },
+    // { id: "experience", label: "Experience", icon: <Icons.Building /> },
     { id: "projects", label: "Projects", icon: <Icons.Tool /> },
     { id: "additional", label: "Additional", icon: <Icons.Tag /> },
   ];
@@ -2349,90 +2349,90 @@ const ProfileForm = () => {
           </div>
         );
 
-      case "experience":
-        return (
-          <div style={styles.formSection}>
-            <h3 style={styles.sectionTitle}>
-              <span style={styles.sectionIcon}><Icons.Building /></span>
-              Work Experience
-            </h3>
+      // case "experience":
+      //   return (
+      //     <div style={styles.formSection}>
+      //       <h3 style={styles.sectionTitle}>
+      //         <span style={styles.sectionIcon}><Icons.Building /></span>
+      //         Work Experience
+      //       </h3>
 
-            {profile.experience.map((exp, index) => (
-              <div key={index} style={styles.arrayItem}>
-                <div style={styles.arrayItemHeader}>
-                  <div style={styles.arrayItemTitle}>
-                    Experience #{index + 1}
-                  </div>
-                  {profile.experience.length > 1 && (
-                    <button
-                      type="button"
-                      style={styles.removeButton}
-                      onClick={() => handleRemoveItem("experience", index)}
-                      onMouseEnter={(e) => e.currentTarget.style.background = "#fecaca"}
-                      onMouseLeave={(e) => e.currentTarget.style.background = "#fee2e2"}
-                    >
-                      <Icons.X />
-                    </button>
-                  )}
-                </div>
+      //       {profile.experience.map((exp, index) => (
+      //         <div key={index} style={styles.arrayItem}>
+      //           <div style={styles.arrayItemHeader}>
+      //             <div style={styles.arrayItemTitle}>
+      //               Experience #{index + 1}
+      //             </div>
+      //             {profile.experience.length > 1 && (
+      //               <button
+      //                 type="button"
+      //                 style={styles.removeButton}
+      //                 onClick={() => handleRemoveItem("experience", index)}
+      //                 onMouseEnter={(e) => e.currentTarget.style.background = "#fecaca"}
+      //                 onMouseLeave={(e) => e.currentTarget.style.background = "#fee2e2"}
+      //               >
+      //                 <Icons.X />
+      //               </button>
+      //             )}
+      //           </div>
 
-                <div style={styles.arrayFields}>
-                  <div style={styles.formGroup}>
-                    <label style={styles.label}>
-                      <span style={styles.labelIcon}><Icons.Tag /></span>
-                      Job Title
-                    </label>
-                    <input
-                      type="text"
-                      value={exp.title}
-                      onChange={(e) => handleArrayChange("experience", index, "title", e.target.value)}
-                      style={styles.input}
-                      placeholder="Senior Software Engineer"
-                    />
-                  </div>
+      //           <div style={styles.arrayFields}>
+      //             <div style={styles.formGroup}>
+      //               <label style={styles.label}>
+      //                 <span style={styles.labelIcon}><Icons.Tag /></span>
+      //                 Job Title
+      //               </label>
+      //               <input
+      //                 type="text"
+      //                 value={exp.title}
+      //                 onChange={(e) => handleArrayChange("experience", index, "title", e.target.value)}
+      //                 style={styles.input}
+      //                 placeholder="Senior Software Engineer"
+      //               />
+      //             </div>
 
-                  <div style={styles.formGroup}>
-                    <label style={styles.label}>
-                      <span style={styles.labelIcon}><Icons.Building /></span>
-                      Company
-                    </label>
-                    <input
-                      type="text"
-                      value={exp.company}
-                      onChange={(e) => handleArrayChange("experience", index, "company", e.target.value)}
-                      style={styles.input}
-                      placeholder="Tech Company Inc."
-                    />
-                  </div>
-                </div>
+      //             <div style={styles.formGroup}>
+      //               <label style={styles.label}>
+      //                 <span style={styles.labelIcon}><Icons.Building /></span>
+      //                 Company
+      //               </label>
+      //               <input
+      //                 type="text"
+      //                 value={exp.company}
+      //                 onChange={(e) => handleArrayChange("experience", index, "company", e.target.value)}
+      //                 style={styles.input}
+      //                 placeholder="Tech Company Inc."
+      //               />
+      //             </div>
+      //           </div>
 
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>
-                    <span style={styles.labelIcon}><Icons.FileText /></span>
-                    Description
-                  </label>
-                  <textarea
-                    value={exp.description}
-                    onChange={(e) => handleArrayChange("experience", index, "description", e.target.value)}
-                    style={{ ...styles.textarea, minHeight: "80px" }}
-                    placeholder="Describe your responsibilities and achievements..."
-                  />
-                </div>
-              </div>
-            ))}
+      //           <div style={styles.formGroup}>
+      //             <label style={styles.label}>
+      //               <span style={styles.labelIcon}><Icons.FileText /></span>
+      //               Description
+      //             </label>
+      //             <textarea
+      //               value={exp.description}
+      //               onChange={(e) => handleArrayChange("experience", index, "description", e.target.value)}
+      //               style={{ ...styles.textarea, minHeight: "80px" }}
+      //               placeholder="Describe your responsibilities and achievements..."
+      //             />
+      //           </div>
+      //         </div>
+      //       ))}
 
-            <button
-              type="button"
-              style={styles.addButton}
-              onClick={() => handleAddItem("experience", defaultObjects.experience)}
-              onMouseEnter={(e) => e.currentTarget.style.background = "#e6f7ff"}
-              onMouseLeave={(e) => e.currentTarget.style.background = "#f0f7ff"}
-            >
-              <Icons.Plus />
-              Add Experience
-            </button>
-          </div>
-        );
+      //       <button
+      //         type="button"
+      //         style={styles.addButton}
+      //         onClick={() => handleAddItem("experience", defaultObjects.experience)}
+      //         onMouseEnter={(e) => e.currentTarget.style.background = "#e6f7ff"}
+      //         onMouseLeave={(e) => e.currentTarget.style.background = "#f0f7ff"}
+      //       >
+      //         <Icons.Plus />
+      //         Add Experience
+      //       </button>
+      //     </div>
+      //   );
 
       case "projects":
         return (

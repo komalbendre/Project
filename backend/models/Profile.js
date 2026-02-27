@@ -76,19 +76,19 @@ const profileSchema = new mongoose.Schema({
   },
   
   // Experience - simplified to match frontend
-  experience: [{
-    title: {
-      type: String,
-      trim: true
-    },
-    company: {
-      type: String,
-      trim: true
-    },
-    description: {
-      type: String
-    }
-  }],
+  // experience: [{
+  //   title: {
+  //     type: String,
+  //     trim: true
+  //   },
+  //   company: {
+  //     type: String,
+  //     trim: true
+  //   },
+  //   description: {
+  //     type: String
+  //   }
+  // }],
 
   // Education - updated to match frontend
   education: [{

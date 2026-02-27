@@ -16,7 +16,7 @@ const router = express.Router();
 // Get current user's profile
 router.get("/me/profile", auth, getMyProfile);
 
-// ✅ Public route - Get any user's profile (with limited info)
+// Public route - Get any user's profile (with limited info)
 router.get("/:userId", getProfile);
 
 
@@ -26,7 +26,7 @@ router.post("/:userId", auth, updateProfile);
 // Get profile statistics for dashboard
 router.get("/stats/:userId", auth, getProfileStats);
 
-// ✅ Admin only routes
+// Admin only routes
 
 // Get all profiles with pagination and search
 router.get("/", auth, roleCheck(['admin']), getAllProfiles);
@@ -34,7 +34,7 @@ router.get("/", auth, roleCheck(['admin']), getAllProfiles);
 // Delete profile (admin or own profile)
 router.delete("/:userId", auth, roleCheck(['admin', 'user']), deleteProfile);
 
-// ✅ Additional routes for enhanced features
+// Additional routes for enhanced features
 
 // Search profiles by skills
 router.get("/search/skills", auth, async (req, res) => {
