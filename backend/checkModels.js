@@ -17,6 +17,7 @@ async function checkModels() {
     }
   } catch (err) {
     console.error("Error:", err);
+    
   }
 }
 

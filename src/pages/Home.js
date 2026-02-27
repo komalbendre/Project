@@ -10,7 +10,7 @@ const Home = () => {
       lineHeight: 1.6,
     },
     hero: {
-      background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+      background: "linear-gradient(135deg, #293e97 0%, #0d5469 100%)",
       color: "white",
       padding: "6rem 2rem",
       textAlign: "center",
@@ -358,14 +358,14 @@ const Home = () => {
               🚀 Get Started Free
             </Link>
             <Link 
-              to="/signup" 
-              style={styles.secondaryButton}
-              onMouseEnter={(e) => handleButtonHover(e, true)}
-              onMouseLeave={(e) => handleButtonHover(e, false)}
-              className="button-hover"
-            >
-              📝 Learn More
-            </Link>
+  to="/career-paths" 
+  style={styles.secondaryButton}
+  onMouseEnter={(e) => handleButtonHover(e, true)}
+  onMouseLeave={(e) => handleButtonHover(e, false)}
+  className="button-hover"
+>
+  📝 Learn More
+</Link>
           </div>
         </div>
       </section>
