@@ -100,7 +100,7 @@ const CareerPaths = () => {
       'lump-sum': 'total'
     };
 
-    return `₹${stipend.amount}/${periodMap[stipend.period] || 'month'}`;
+    return `$${stipend.amount}/${periodMap[stipend.period] || 'month'}`;
   };
 
   const formatTimeline = (startDate, duration) => {
@@ -1067,25 +1067,18 @@ const CareerPaths = () => {
       fontWeight: 600,
       zIndex: 2,
     },
-    // Update the appliedBadge style to have a higher z-index and better positioning
-appliedBadge: {
-  position: "absolute",
-  top: "0.75rem",
-  left: "0.75rem",
-  background: "linear-gradient(135deg, #94a3b8 0%, #64748b 100%)",
-  color: "white",
-  padding: "0.25rem 0.75rem",
-  borderRadius: "16px",
-  fontSize: "0.75rem",
-  fontWeight: 600,
-  zIndex: 10, // Increased z-index to ensure it's above other elements
-},
-
-// Add this new style for the title container to create padding when badge is present
-titleWithBadge: {
-  marginLeft: "90px",
-  marginTop: "90px" // Creates space for the applied badge (adjust as needed)
-},
+    appliedBadge: {
+      position: "absolute",
+      top: "0.75rem",
+      left: "0.75rem",
+      background: "linear-gradient(135deg, #94a3b8 0%, #64748b 100%)",
+      color: "white",
+      padding: "0.25rem 0.75rem",
+      borderRadius: "16px",
+      fontSize: "0.75rem",
+      fontWeight: 600,
+      zIndex: 10, // Increased z-index
+    },
     cardContent: {
       padding: "1.25rem",
       display: "flex",
@@ -1101,7 +1094,6 @@ titleWithBadge: {
       color: "#2d3748",
       marginBottom: "0.25rem",
       lineHeight: 1.3,
-      marginTop: "2rem",
     },
     cardSubtitle: {
       fontSize: "0.875rem",
@@ -1713,16 +1705,19 @@ titleWithBadge: {
                 {/* Show applied badge if user has already applied */}
                 {item.applied && (
                   <div style={styles.appliedBadge}>
-                    Applied
+                    ✓ Applied
                   </div>
                 )}
 
                 <div style={styles.cardContent}>
                   <div style={styles.cardHeader}>
-                    <h3 style={styles.cardTitle}>{item.title}</h3>
-                    <p style={styles.cardSubtitle}>
-                      {item.company || item.platform}
-                    </p>
+                    {/* Title with conditional padding when badge is present */}
+                    <div style={item.applied ? { paddingLeft: '90px' } : {}}>
+                      <h3 style={styles.cardTitle}>{item.title}</h3>
+                      <p style={styles.cardSubtitle}>
+                        {item.company || item.platform}
+                      </p>
+                    </div>
                     {item.description && (
                       <p style={styles.cardDescription}>{item.description.substring(0, 100)}...</p>
                     )}
@@ -1988,13 +1983,13 @@ titleWithBadge: {
               <div style={{
                 background: "#d1fae5",
                 color: "#065f46",
-                padding: "5rem",
+                padding: "1rem",
                 borderRadius: "8px",
                 marginBottom: "1rem",
                 textAlign: "center",
                 fontWeight: 600,
               }}>
-                You have already applied for this internship
+                ✓ You have already applied for this internship
               </div>
             )}
 
@@ -2258,7 +2253,7 @@ titleWithBadge: {
                   {career.missingSkills && career.missingSkills.length > 0 && (
                     <div style={{ marginBottom: "1rem" }}>
                       <p style={{ fontSize: "1rem", fontWeight: 600, color: "#2d3748", marginBottom: "0.75rem" }}>
-                        Skills to Learn:
+                        🎯 Skills to Learn:
                       </p>
                       <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem" }}>
                         {career.missingSkills.map((skill, idx) => (
@@ -2284,7 +2279,7 @@ titleWithBadge: {
                   {career.recommendedCourses && career.recommendedCourses.length > 0 && (
                     <div style={{ marginBottom: "1rem" }}>
                       <p style={{ fontSize: "1rem", fontWeight: 600, color: "#2d3748", marginBottom: "0.75rem" }}>
-                        Recommended Courses:
+                        📚 Recommended Courses:
                       </p>
                       <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem" }}>
                         {career.recommendedCourses.map((course, idx) => (
