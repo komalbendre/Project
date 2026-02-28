@@ -1,0 +1,454 @@
+/* resumeThree.css - Minimalist Resume Template */
+.resume-three-container {
+  max-width: 210mm;
+  min-height: 297mm;
+  margin: 0 auto;
+  padding: 50px 60px;
+  background-color: white;
+  font-family: 'Helvetica Neue', 'Arial', sans-serif;
+  color: #2c3e50;
+  line-height: 1.6;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+/* Header Styles - Ultra minimal */
+.resume-three-header {
+  text-align: center;
+  margin-bottom: 40px;
+  padding-bottom: 30px;
+  border-bottom: 1px solid #ecf0f1;
+}
+
+.header-content {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.resume-three-name {
+  font-size: 2.8rem;
+  font-weight: 300;
+  color: #2c3e50;
+  margin-bottom: 10px;
+  letter-spacing: 1px;
+}
+
+.resume-three-title {
+  font-size: 1.2rem;
+  color: #7f8c8d;
+  margin-bottom: 20px;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.contact-line {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 0.95rem;
+  color: #34495e;
+}
+
+.contact-item {
+  color: #34495e;
+  font-weight: 400;
+}
+
+.contact-divider {
+  color: #bdc3c7;
+}
+
+/* Main Content */
+.resume-three-main {
+  margin-bottom: 40px;
+}
+
+.content-columns {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 40px;
+}
+
+/* Sections */
+.resume-three-section {
+  margin-bottom: 30px;
+}
+
+.summary-section {
+  text-align: center;
+  max-width: 700px;
+  margin: 0 auto 40px auto;
+  padding-bottom: 30px;
+  border-bottom: 1px solid #ecf0f1;
+}
+
+.section-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 20px;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  position: relative;
+  padding-bottom: 10px;
+}
+
+.section-title::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 40px;
+  height: 1px;
+  background-color: #3498db;
+}
+
+.right-column .section-title::after {
+  background-color: #2ecc71;
+}
+
+.section-content {
+  padding-left: 5px;
+}
+
+/* Summary Text */
+.summary-text {
+  font-size: 1.1rem;
+  color: #34495e;
+  line-height: 1.8;
+  font-weight: 300;
+}
+
+/* Experience Styles */
+.experience-item {
+  margin-bottom: 25px;
+  position: relative;
+  padding-left: 15px;
+}
+
+.experience-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 5px;
+  width: 8px;
+  height: 8px;
+  background-color: #3498db;
+  border-radius: 50%;
+}
+
+.experience-header {
+  margin-bottom: 8px;
+}
+
+.job-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 3px;
+}
+
+.company-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 3px;
+}
+
+.company-name {
+  font-size: 1rem;
+  color: #3498db;
+  font-weight: 500;
+}
+
+.company-location {
+  font-size: 0.9rem;
+  color: #95a5a6;
+  font-weight: 300;
+}
+
+.experience-date {
+  font-size: 0.9rem;
+  color: #95a5a6;
+  font-weight: 300;
+  letter-spacing: 0.5px;
+}
+
+.experience-description {
+  margin-top: 8px;
+}
+
+.experience-description p {
+  margin: 0;
+  color: #34495e;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  font-weight: 300;
+}
+
+/* Education Styles */
+.education-item {
+  margin-bottom: 25px;
+  position: relative;
+  padding-left: 15px;
+}
+
+.education-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 5px;
+  width: 8px;
+  height: 8px;
+  background-color: #3498db;
+  border-radius: 50%;
+}
+
+.education-header {
+  margin-bottom: 8px;
+}
+
+.degree-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 3px;
+}
+
+.institution-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 3px;
+}
+
+.institution-name {
+  font-size: 1rem;
+  color: #3498db;
+  font-weight: 500;
+}
+
+.institution-location {
+  font-size: 0.9rem;
+  color: #95a5a6;
+  font-weight: 300;
+}
+
+.education-date {
+  font-size: 0.9rem;
+  color: #95a5a6;
+  font-weight: 300;
+  letter-spacing: 0.5px;
+}
+
+.education-description {
+  margin-top: 8px;
+}
+
+.education-description p {
+  margin: 0;
+  color: #34495e;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  font-weight: 300;
+}
+
+/* Skills Styles */
+.skills-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.skill-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #34495e;
+  font-size: 0.95rem;
+  font-weight: 300;
+}
+
+.skill-dot {
+  color: #2ecc71;
+  font-weight: bold;
+}
+
+/* Projects Styles */
+.project-item {
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.project-item:last-child {
+  border-bottom: none;
+}
+
+.project-header {
+  margin-bottom: 8px;
+}
+
+.project-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.project-description {
+  margin: 0;
+  color: #34495e;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  font-weight: 300;
+}
+
+/* Certifications Styles */
+.certification-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  color: #34495e;
+  font-size: 0.95rem;
+  font-weight: 300;
+}
+
+.cert-dash {
+  color: #2ecc71;
+}
+
+/* Languages Styles */
+.languages-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.language-item {
+  background-color: #f8f9fa;
+  padding: 6px 12px;
+  border-radius: 3px;
+  font-size: 0.9rem;
+  color: #34495e;
+  font-weight: 300;
+  border: 1px solid #ecf0f1;
+}
+
+/* Footer */
+.resume-three-footer {
+  padding-top: 30px;
+}
+
+.footer-line {
+  height: 1px;
+  background-color: #ecf0f1;
+}
+
+/* Preview Mode Styles for ResumeBuilder */
+.resume-three-preview-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 30px;
+  background-color: white;
+  font-family: 'Helvetica Neue', 'Arial', sans-serif;
+  color: #2c3e50;
+  line-height: 1.6;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.resume-three-preview-container .resume-three-name {
+  font-size: 2.2rem;
+}
+
+.resume-three-preview-container .content-columns {
+  gap: 30px;
+}
+
+.resume-three-preview-container .section-title {
+  font-size: 0.85rem;
+  letter-spacing: 2px;
+}
+
+.resume-three-preview-container .job-title,
+.resume-three-preview-container .degree-name {
+  font-size: 1rem;
+}
+
+/* Print Styles */
+@media print {
+  .resume-three-container {
+    box-shadow: none;
+    padding: 20mm;
+    margin: 0;
+    max-width: 100%;
+    min-height: auto;
+  }
+  
+  .resume-three-section {
+    page-break-inside: avoid;
+  }
+  
+  .content-columns {
+    page-break-inside: avoid;
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .content-columns {
+    grid-template-columns: 1fr;
+    gap: 30px;
+  }
+  
+  .resume-three-container {
+    padding: 30px;
+  }
+}
+
+@media (max-width: 768px) {
+  .resume-three-container {
+    padding: 20px;
+  }
+  
+  .resume-three-name {
+    font-size: 2.2rem;
+  }
+  
+  .contact-line {
+    flex-direction: column;
+    gap: 5px;
+  }
+  
+  .contact-divider {
+    display: none;
+  }
+  
+  .company-info,
+  .institution-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+}
+
+@media (max-width: 480px) {
+  .resume-three-container {
+    padding: 15px;
+  }
+  
+  .resume-three-name {
+    font-size: 1.8rem;
+  }
+  
+  .resume-three-title {
+    font-size: 1rem;
+  }
+  
+  .section-title {
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+  }
+}
