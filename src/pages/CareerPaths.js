@@ -100,7 +100,7 @@ const CareerPaths = () => {
       'lump-sum': 'total'
     };
 
-    return `$${stipend.amount}/${periodMap[stipend.period] || 'month'}`;
+    return `₹${stipend.amount}/${periodMap[stipend.period] || 'month'}`;
   };
 
   const formatTimeline = (startDate, duration) => {
@@ -1705,7 +1705,7 @@ const CareerPaths = () => {
                 {/* Show applied badge if user has already applied */}
                 {item.applied && (
                   <div style={styles.appliedBadge}>
-                    ✓ Applied
+                    Applied
                   </div>
                 )}
 
@@ -1989,7 +1989,7 @@ const CareerPaths = () => {
                 textAlign: "center",
                 fontWeight: 600,
               }}>
-                ✓ You have already applied for this internship
+                You have already applied for this internship
               </div>
             )}
 
