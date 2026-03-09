@@ -1442,4 +1442,5 @@ const styles = {
   },
 };
 
+
 export default ApplyPage;
