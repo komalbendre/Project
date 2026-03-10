@@ -254,57 +254,68 @@ const Dashboard = () => {
     }
 
     const fetchUserData = async () => {
-      try {
-        const response = await fetch(
-          `http://localhost:5000/api/profile/me/profile`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
-
-        if (response.ok) {
-          const data = await response.json();
-          if (data.data) {
-            const userData = data.data;
-            const userName =
-              userData.fullName ||
-              (userData.user && userData.user.name) ||
-              localStorage.getItem("userName") ||
-              "User";
-
-            setUser({
-              name: userName,
-              role: userRole === "company_admin" ? "Company Admin" : "User",
-              location: userData.location || "Location not set",
-              university: userData.university || "Add your university",
-              graduation: userData.graduation || "Add graduation date",
-              connections: userData.connections || 0,
-              profileViews: userData.profileViews || 0,
-              avatarColor: "#0073b1",
-            });
-
-            localStorage.setItem("userName", userName);
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching user data:", error);
-        const userName = localStorage.getItem("userName") || "User";
-        setUser({
-          name: userName,
-          role: userRole === "company_admin" ? "Company Admin" : "User",
-          location: "Set your location",
-          university: "Add your university",
-          graduation: "Add graduation date",
-          connections: 0,
-          profileViews: 0,
-          avatarColor: "#0073b1",
-        });
+  try {
+    // First fetch user data
+    const userResponse = await fetch(
+      `http://localhost:5000/api/users/me`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
       }
-    };
+    );
+
+    if (userResponse.ok) {
+      const userData = await userResponse.json();
+      
+      // Then fetch profile data
+      const profileResponse = await fetch(
+        `http://localhost:5000/api/profile/me`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      let profileData = null;
+      if (profileResponse.ok) {
+        profileData = await profileResponse.json();
+      }
+
+      // Combine user and profile data
+      setUser({
+        name: `${userData.data.fname} ${userData.data.lname}`,
+        role: userData.data.role === "company_admin" ? "Company Admin" : "User",
+        location: profileData?.data?.location || "Location not set",
+        university: profileData?.data?.university || "Add your university",
+        graduation: profileData?.data?.graduation || "Add graduation date",
+        connections: profileData?.data?.connections || 0,
+        profileViews: profileData?.data?.profileViews || 0,
+        avatarColor: "#0073b1",
+      });
+
+      localStorage.setItem("userName", `${userData.data.fname} ${userData.data.lname}`);
+    }
+  } catch (error) {
+    console.error("Error fetching user data:", error);
+    const userName = localStorage.getItem("userName") || "User";
+    setUser({
+      name: userName,
+      role: localStorage.getItem("userRole") === "company_admin" ? "Company Admin" : "User",
+      location: "Set your location",
+      university: "Add your university",
+      graduation: "Add graduation date",
+      connections: 0,
+      profileViews: 0,
+      avatarColor: "#0073b1",
+    });
+  }
+};
 
     const fetchAllDashboardData = async () => {
       await Promise.all([

@@ -24,13 +24,14 @@ function Login() {
       const data = await res.json();
 
       if (res.ok) {
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("userRole", data.user.role);
-        localStorage.setItem("userName", data.user.name);
-        localStorage.setItem("isApproved", data.user.isApproved ? "true" : "false");
+  localStorage.setItem("token", data.token);
+  localStorage.setItem("userRole", data.user.role);
+  localStorage.setItem("userName", data.user.name);
+  localStorage.setItem("userId", data.user._id); // Add this line
+  localStorage.setItem("isApproved", data.user.isApproved ? "true" : "false");
 
-        setMessage("✅ Login successful!");
-        setError(false);
+  setMessage("Login successful!");
+  setError(false);
 
         setTimeout(() => {
           switch (data.user.role) {

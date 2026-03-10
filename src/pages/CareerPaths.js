@@ -41,13 +41,13 @@ const CareerPaths = () => {
 
   // State for real user data
   const [userData, setUserData] = useState({
-    name: "",
-    currentRole: "",
-    skills: [],
-    experienceLevel: "",
-    email: "",
-    phone: "",
-  });
+  name: "",
+  currentRole: "",
+  skills: [],
+  experienceLevel: "",
+  email: "",
+  phone: "",
+});
 
   // State for dynamic data from backend
   const [internships, setInternships] = useState([]);
@@ -466,56 +466,70 @@ const CareerPaths = () => {
   };
 
   const getCareerSuggestions = async () => {
-    // Check if user has skills
-    const hasSkills = userData.skills && userData.skills.length > 0;
+  // Check if user has skills
+  const hasSkills = userData.skills && userData.skills.length > 0;
 
-    if (!hasSkills) {
-      alert("Please add skills to your profile to get AI-powered career suggestions");
+  if (!hasSkills) {
+    alert("Please add skills to your profile to get AI-powered career suggestions");
+    return;
+  }
+
+  try {
+    setAiLoading(true);
+    setFetchError("");
+
+    const token = localStorage.getItem("token");
+    const userId = localStorage.getItem("userId");
+
+    if (!token) {
+      alert("Please log in to get AI career suggestions");
       return;
     }
 
-    try {
-      setAiLoading(true);
-      setFetchError("");
+    // First, get the user's profile to ensure we have the latest skills
+    const profileResponse = await axios.get(
+      `http://localhost:5000/api/profile/${userId}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
 
-      const token = localStorage.getItem("token");
-
-      if (!token) {
-        alert("Please log in to get AI career suggestions");
-        return;
-      }
-
-      // Call the AI endpoint
-      const response = await axios.post(
-        "http://localhost:5000/api/ai/career-suggestions",
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      console.log("Full API Response:", response.data);
-
-      if (response.data.success) {
-        const aiData = response.data.data;
-        console.log("AI Data received:", aiData);
-
-        setAiResults(aiData);
-        setShowAiModal(true);
-      } else {
-        throw new Error(response.data.message || "Failed to get suggestions");
-      }
-
-    } catch (err) {
-      console.error("Error fetching AI career suggestions:", err);
-      alert("Failed to get AI suggestions. Please try again.");
-    } finally {
-      setAiLoading(false);
+    let skillsToSend = userData.skills;
+    
+    if (profileResponse.data && profileResponse.data.data) {
+      const profile = profileResponse.data.data;
+      skillsToSend = profile.technicalSkills || userData.skills;
     }
-  };
+
+    // Call the AI endpoint with the user's skills
+    const response = await axios.post(
+      "http://localhost:5000/api/ai/career-suggestions",
+      { skills: skillsToSend }, // Send skills in the request body
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    console.log("Full API Response:", response.data);
+
+    if (response.data.success) {
+      const aiData = response.data.data;
+      console.log("AI Data received:", aiData);
+
+      setAiResults(aiData);
+      setShowAiModal(true);
+    } else {
+      throw new Error(response.data.message || "Failed to get suggestions");
+    }
+
+  } catch (err) {
+    console.error("Error fetching AI career suggestions:", err);
+    alert("Failed to get AI suggestions. Please try again.");
+  } finally {
+    setAiLoading(false);
+  }
+};
 
   useEffect(() => {
     console.log("🔥 aiResults changed:", aiResults);
@@ -535,100 +549,101 @@ const CareerPaths = () => {
   }, [userApplications, applicationsLoaded]);
 
   useEffect(() => {
-    const fetchUserProfile = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        const userId = localStorage.getItem("userId");
+  const fetchUserProfile = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const userId = localStorage.getItem("userId");
 
-        if (!token || !userId) {
-          console.warn("No token or userId found");
-          const defaultData = {
-            name: "Alex Johnson",
-            currentRole: "Frontend Developer",
-            skills: ["JavaScript", "React", "HTML", "CSS", "Node.js", "Git"],
-            experienceLevel: "Intermediate",
-            email: "alex.johnson@example.com",
-            phone: "+1 (555) 123-4567"
-          };
-
-          setUserData(defaultData);
-          setMockRecommendations(prev => ({
-            ...prev,
-            skills: { ...prev.skills, current: defaultData.skills }
-          }));
-
-          // Fetch applications FIRST
-          await fetchUserApplications();
-          
-          // Then fetch other data
-          await fetchInternships(1);
-          await fetchCourses();
-          await fetchCareerPaths();
-          setLoading(false);
-          return;
-        }
-
-        // Fetch user applications FIRST
-        await fetchUserApplications();
-
-        // Then fetch profile
-        const profileResponse = await axios.get(
-          `http://localhost:5000/api/profile/${userId}`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-
-        if (profileResponse.data && profileResponse.data.data) {
-          const profile = profileResponse.data.data;
-          const updatedUserData = {
-            name: profile.fullName || "User",
-            currentRole: profile.experience?.[0]?.title || "Professional",
-            skills: profile.technicalSkills || [],
-            experienceLevel: "Intermediate",
-            email: profile.email || "",
-            phone: profile.phone || ""
-          };
-
-          setUserData(updatedUserData);
-          setMockRecommendations(prev => ({
-            ...prev,
-            skills: { ...prev.skills, current: profile.technicalSkills || [] }
-          }));
-
-          // Now fetch internships (will have userApplications populated)
-          await fetchInternships(1);
-          await fetchCourses();
-          await fetchCareerPaths();
-        }
-
-        setTimeout(() => setLoading(false), 1500);
-      } catch (error) {
-        console.error("Error fetching profile:", error);
-        const defaultData = {
-          name: "Alex Johnson",
-          currentRole: "Frontend Developer",
-          skills: ["JavaScript", "React", "HTML", "CSS", "Node.js", "Git"],
-          experienceLevel: "Intermediate",
-          email: "alex.johnson@example.com",
-          phone: "+1 (555) 123-4567"
-        };
-
-        setUserData(defaultData);
-        setMockRecommendations(prev => ({
-          ...prev,
-          skills: { ...prev.skills, current: defaultData.skills }
-        }));
-
-        // Fetch applications FIRST even in error case
-        await fetchUserApplications();
-        await fetchInternships(1);
-        await fetchCourses();
-        await fetchCareerPaths();
-        setTimeout(() => setLoading(false), 1500);
+      if (!token || !userId) {
+        console.warn("No token or userId found");
+        navigate("/login");
+        return;
       }
-    };
 
-    fetchUserProfile();
-  }, []);
+      // First, fetch user data from /api/users/me
+      const userResponse = await axios.get(
+        `http://localhost:5000/api/users/me`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      let userName = "User";
+      let userSkills = [];
+
+      if (userResponse.data && userResponse.data.success) {
+        const userData = userResponse.data.data;
+        // Construct full name from fname and lname
+        userName = `${userData.fname || ''} ${userData.lname || ''}`.trim() || "User";
+        
+        // Try to fetch profile for skills
+        try {
+          const profileResponse = await axios.get(
+            `http://localhost:5000/api/profile/${userId}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+
+          if (profileResponse.data && profileResponse.data.data) {
+            const profile = profileResponse.data.data;
+            userSkills = profile.technicalSkills || [];
+            
+            setUserData({
+              name: userName,
+              currentRole: profile.experience?.[0]?.title || "Professional",
+              skills: userSkills,
+              experienceLevel: "Intermediate",
+              email: profile.email || userData.email || "",
+              phone: profile.phone || ""
+            });
+          } else {
+            // Profile not found, use basic user data
+            setUserData({
+              name: userName,
+              currentRole: "Professional",
+              skills: [],
+              experienceLevel: "Intermediate",
+              email: userData.email || "",
+              phone: ""
+            });
+          }
+        } catch (profileErr) {
+          console.log("Profile not found, using basic user data");
+          setUserData({
+            name: userName,
+            currentRole: "Professional",
+            skills: [],
+            experienceLevel: "Intermediate",
+            email: userData.email || "",
+            phone: ""
+          });
+        }
+      }
+
+      // Fetch applications
+      await fetchUserApplications();
+      
+      // Fetch other data
+      await fetchInternships(1);
+      await fetchCourses();
+      await fetchCareerPaths();
+      
+      setLoading(false);
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+      // Fallback to localStorage name
+      const storedName = localStorage.getItem("userName") || "User";
+      setUserData({
+        name: storedName,
+        currentRole: "Professional",
+        skills: [],
+        experienceLevel: "Intermediate",
+        email: "",
+        phone: ""
+      });
+      setLoading(false);
+    }
+  };
+
+  fetchUserProfile();
+}, [navigate]);
 
   // Refetch internships when filters change
   useEffect(() => {
@@ -1516,30 +1531,36 @@ const CareerPaths = () => {
       </div>
 
       {/* Profile Section */}
-      <div style={styles.profileSection}>
-        <div style={styles.profileHeader}>
-          <div style={styles.profileInfo}>
-            <h2 style={styles.userName}>{userData.name}</h2>
-            <p style={styles.userRole}>
-              {userData.currentRole} • {userData.experienceLevel}
-              {userData.skills.length > 0 && ` • ${userData.skills.length} skills`}
-            </p>
-            <div style={styles.skillTags}>
-              {userData.skills.slice(0, 6).map((skill, index) => (
-                <span key={index} style={styles.skillTag}>{skill}</span>
-              ))}
-              {userData.skills.length > 6 && (
-                <span style={styles.skillTag}>+{userData.skills.length - 6} more</span>
-              )}
-              {userData.skills.length === 0 && (
-                <span style={{ ...styles.skillTag, background: "#f1f5f9", color: "#64748b" }}>
-                  Add skills in your profile
-                </span>
-              )}
-            </div>
-          </div>
+      {/* Profile Section */}
+<div style={styles.profileSection}>
+  <div style={styles.profileHeader}>
+    <div style={styles.profileInfo}>
+      <h2 style={styles.userName}>
+        {userData.name || "Welcome!"}
+      </h2>
+      <p style={styles.userRole}>
+        {userData.currentRole || "Complete your profile"} • {userData.experienceLevel || "Get started"}
+        {userData.skills.length > 0 && ` • ${userData.skills.length} skills`}
+      </p>
+      {userData.skills.length > 0 ? (
+        <div style={styles.skillTags}>
+          {userData.skills.slice(0, 6).map((skill, index) => (
+            <span key={index} style={styles.skillTag}>{skill}</span>
+          ))}
+          {userData.skills.length > 6 && (
+            <span style={styles.skillTag}>+{userData.skills.length - 6} more</span>
+          )}
         </div>
-      </div>
+      ) : (
+        <div style={{ ...styles.skillTags, marginTop: "0.5rem" }}>
+          <span style={{ ...styles.skillTag, background: "#f1f5f9", color: "#64748b" }}>
+            Add skills to your profile for personalized recommendations
+          </span>
+        </div>
+      )}
+    </div>
+  </div>
+</div>
 
       {/* Main Section - Controls + Cards Combined */}
       <div style={styles.mainSection}>
