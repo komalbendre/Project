@@ -1561,7 +1561,7 @@ const CareerPaths = () => {
     </div>
   </div>
 </div>
-
+  
       {/* Main Section - Controls + Cards Combined */}
       <div style={styles.mainSection}>
         {/* Controls Section */}

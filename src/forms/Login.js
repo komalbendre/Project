@@ -1,38 +1,39 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-
+ 
 function Login() {
   const [form, setForm] = useState({ email: "", password: "", role: "user" });
   const [message, setMessage] = useState("");
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-
+ 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setMessage("");
     setError(false);
-
+ 
     try {
       const res = await fetch("http://localhost:5000/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
-
+ 
       const data = await res.json();
-
+ 
       if (res.ok) {
-  localStorage.setItem("token", data.token);
-  localStorage.setItem("userRole", data.user.role);
-  localStorage.setItem("userName", data.user.name);
-  localStorage.setItem("userId", data.user._id); // Add this line
-  localStorage.setItem("isApproved", data.user.isApproved ? "true" : "false");
-
-  setMessage("Login successful!");
-  setError(false);
-
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("userRole", data.user.role);
+        localStorage.setItem("userName", data.user.name);
+        // FIX: authRoutes sends 'id' not '_id' — was always storing undefined
+        localStorage.setItem("userId", data.user.id || data.user._id);
+        localStorage.setItem("isApproved", data.user.isApproved ? "true" : "false");
+ 
+        setMessage("Login successful!");
+        setError(false);
+ 
         setTimeout(() => {
           switch (data.user.role) {
             case "admin":
@@ -57,25 +58,25 @@ function Login() {
       setLoading(false);
     }
   };
-
+ 
   const styles = {
     page: {
-  minHeight: "100vh",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  backgroundColor: "#f9fafb", // white background  
-  padding: "20px",
-  fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif",
-},
+      minHeight: "100vh",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: "#f9fafb",
+      padding: "20px",
+      fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif",
+    },
     container: {
-  width: "100%",
-  maxWidth: "420px",
-  padding: "2.5rem",
-  background: "#ffffff",
-  borderRadius: "16px",
-  boxShadow: "0 20px 50px rgba(0,0,0,0.08)",
-},
+      width: "100%",
+      maxWidth: "420px",
+      padding: "2.5rem",
+      background: "#ffffff",
+      borderRadius: "16px",
+      boxShadow: "0 20px 50px rgba(0,0,0,0.08)",
+    },
     title: {
       fontSize: "2rem",
       fontWeight: "700",
@@ -154,13 +155,13 @@ function Login() {
       marginLeft: "5px",
     },
   };
-
+ 
   return (
     <div style={styles.page}>
       <div style={styles.container}>
         <h1 style={styles.title}>Welcome Back</h1>
         <p style={styles.subtitle}>Sign in to continue to CareerSync</p>
-
+ 
         <form style={styles.form} onSubmit={handleSubmit}>
           <input
             style={styles.input}
@@ -170,7 +171,7 @@ function Login() {
             onChange={(e) => setForm({ ...form, email: e.target.value })}
             required
           />
-
+ 
           <input
             style={styles.input}
             type="password"
@@ -179,7 +180,7 @@ function Login() {
             onChange={(e) => setForm({ ...form, password: e.target.value })}
             required
           />
-
+ 
           <select
             style={styles.select}
             value={form.role}
@@ -189,7 +190,7 @@ function Login() {
             <option value="company_admin">Company</option>
             <option value="admin">Admin</option>
           </select>
-
+ 
           <button
             style={{
               ...styles.button,
@@ -201,7 +202,7 @@ function Login() {
             {loading ? "Logging in..." : "Login"}
           </button>
         </form>
-
+ 
         {message && (
           <div
             style={{
@@ -212,7 +213,7 @@ function Login() {
             {message}
           </div>
         )}
-
+ 
         <div style={styles.linkContainer}>
           Don't have an account?
           <Link to="/signup" style={styles.link}>
@@ -223,5 +224,5 @@ function Login() {
     </div>
   );
 }
-
+ 
 export default Login;

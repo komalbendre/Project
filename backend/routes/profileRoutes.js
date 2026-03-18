@@ -13,30 +13,45 @@ import { auth, roleCheck } from "../middleware/auth.js";
 
 const router = express.Router();
 
-// Get current user's profile
+// ─────────────────────────────────────────────
+// IMPORTANT: All static/named routes MUST come
+// before parameterized routes like /:userId
+// ─────────────────────────────────────────────
+
+// GET  /api/profile/me/profile  — get logged-in user's profile
 router.get("/me/profile", auth, getMyProfile);
 
-// Public route - Get any user's profile (with limited info)
+// PUT  /api/profile/me/profile  — update via profileApi.js (was missing, caused silent 404)
+router.put("/me/profile", auth, (req, res) => {
+  // Inject userId from the authenticated user so updateProfile can use req.params.userId
+  req.params.userId = req.user._id.toString();
+  return updateProfile(req, res);
+});
+
+// GET  /api/profile/  — get all profiles (admin only)
+router.get("/", auth, roleCheck(["admin"]), getAllProfiles);
+
+// ─────────────────────────────────────────────
+// Parameterized routes below
+// ─────────────────────────────────────────────
+
+// GET  /api/profile/:userId  — get any user's profile (public, limited info)
 router.get("/:userId", getProfile);
 
-
-// Update profile (user can update own, admin can update any)
+// POST /api/profile/:userId  — create or update profile (used by ProfileForm.js)
 router.post("/:userId", auth, updateProfile);
 
-// Get profile statistics for dashboard
+// GET  /api/profile/stats/:userId  — get profile completion stats
 router.get("/stats/:userId", auth, getProfileStats);
 
-// Admin only routes
+// DELETE /api/profile/:userId  — delete profile (admin or own)
+router.delete("/:userId", auth, roleCheck(["admin", "user"]), deleteProfile);
 
-// Get all profiles with pagination and search
-router.get("/", auth, roleCheck(['admin']), getAllProfiles);
+// ─────────────────────────────────────────────
+// Search routes
+// ─────────────────────────────────────────────
 
-// Delete profile (admin or own profile)
-router.delete("/:userId", auth, roleCheck(['admin', 'user']), deleteProfile);
-
-// Additional routes for enhanced features
-
-// Search profiles by skills
+// GET /api/profile/search/skills?skills=React,Node.js
 router.get("/search/skills", auth, async (req, res) => {
   try {
     const { skills } = req.query;
@@ -48,14 +63,17 @@ router.get("/search/skills", auth, async (req, res) => {
       });
     }
 
-    const skillsArray = skills.split(',').map(skill => skill.trim());
+    const skillsArray = skills.split(",").map((skill) => skill.trim());
 
     const profiles = await Profile.find({
-      skills: { $in: skillsArray }
+      $or: [
+        { technicalSkills: { $in: skillsArray } },
+        { softSkills: { $in: skillsArray } }
+      ]
     })
-      .populate('userId', 'name email role')
+      .populate("userId", "fname lname email role")
       .limit(20)
-      .select('fullName skills location bio');
+      .select("fullName technicalSkills softSkills location bio");
 
     res.status(200).json({
       success: true,
@@ -72,13 +90,12 @@ router.get("/search/skills", auth, async (req, res) => {
   }
 });
 
-// Get profile completion status
+// GET /api/profile/completion/:userId
 router.get("/completion/:userId", auth, async (req, res) => {
   try {
     const { userId } = req.params;
 
-    // Check if user is requesting their own completion or is admin
-    if (req.user._id.toString() !== userId && req.user.role !== 'admin') {
+    if (req.user._id.toString() !== userId && req.user.role !== "admin") {
       return res.status(403).json({
         success: false,
         message: "Access denied"
@@ -109,13 +126,15 @@ router.get("/completion/:userId", auth, async (req, res) => {
       });
     }
 
-    // Calculate completion
     const fields = {
       fullName: !!(profile.fullName && profile.fullName.length > 0),
       email: !!(profile.email && profile.email.length > 0),
       phone: !!(profile.phone && profile.phone.length > 0),
       bio: !!(profile.bio && profile.bio.length > 0),
-      skills: !!(profile.skills && profile.skills.length > 0),
+      skills: !!(
+        (profile.technicalSkills && profile.technicalSkills.length > 0) ||
+        (profile.softSkills && profile.softSkills.length > 0)
+      ),
       linkedin: !!(profile.linkedin && profile.linkedin.length > 0),
       github: !!(profile.github && profile.github.length > 0),
       location: !!(profile.location && profile.location.length > 0)
@@ -123,7 +142,9 @@ router.get("/completion/:userId", auth, async (req, res) => {
 
     const completedFields = Object.values(fields).filter(Boolean).length;
     const totalFields = Object.keys(fields).length;
-    const completionPercentage = Math.round((completedFields / totalFields) * 100);
+    const completionPercentage = Math.round(
+      (completedFields / totalFields) * 100
+    );
 
     res.status(200).json({
       success: true,
@@ -145,73 +166,50 @@ router.get("/completion/:userId", auth, async (req, res) => {
   }
 });
 
-// Helper function for completion recommendations
-const getCompletionRecommendations = (fields) => {
-  const recommendations = [];
-
-  if (!fields.fullName) recommendations.push("Add your full name");
-  if (!fields.email) recommendations.push("Add your email address");
-  if (!fields.phone) recommendations.push("Add your phone number");
-  if (!fields.bio) recommendations.push("Write a short bio about yourself");
-  if (!fields.skills) recommendations.push("Add at least 3 skills");
-  if (!fields.linkedin) recommendations.push("Add your LinkedIn profile");
-  if (!fields.github) recommendations.push("Add your GitHub profile");
-  if (!fields.location) recommendations.push("Add your location");
-
-  return recommendations;
-};
-
-// Update specific profile field
+// PATCH /api/profile/:userId/field  — update a single field
 router.patch("/:userId/field", auth, async (req, res) => {
   try {
     const { userId } = req.params;
     const { field, value } = req.body;
 
-    // Check if user is updating their own profile or is admin
-    if (req.user._id.toString() !== userId && req.user.role !== 'admin') {
+    if (req.user._id.toString() !== userId && req.user.role !== "admin") {
       return res.status(403).json({
         success: false,
         message: "You can only update your own profile"
       });
     }
 
-    // Validate field
     const allowedFields = [
-      'fullName', 'email', 'phone', 'bio', 'skills',
-      'linkedin', 'github', 'portfolio', 'location'
+      "fullName", "email", "phone", "bio", "technicalSkills",
+      "softSkills", "linkedin", "github", "portfolio", "location"
     ];
 
     if (!allowedFields.includes(field)) {
       return res.status(400).json({
         success: false,
-        message: `Invalid field. Allowed fields: ${allowedFields.join(', ')}`
+        message: `Invalid field. Allowed fields: ${allowedFields.join(", ")}`
       });
     }
 
-    // Validate value based on field
     let validatedValue = value;
 
-    if (field === 'skills') {
-      if (typeof value === 'string') {
-        validatedValue = value.split(',').map(s => s.trim()).filter(s => s.length > 0);
+    if (field === "technicalSkills" || field === "softSkills") {
+      if (typeof value === "string") {
+        validatedValue = value
+          .split(",")
+          .map((s) => s.trim())
+          .filter((s) => s.length > 0);
       } else if (Array.isArray(value)) {
-        validatedValue = value.map(s => s.trim()).filter(s => s.length > 0);
+        validatedValue = value.map((s) => s.trim()).filter((s) => s.length > 0);
       } else {
         return res.status(400).json({
           success: false,
           message: "Skills must be an array or comma-separated string"
         });
       }
-
-      if (validatedValue.length > 20) {
-        return res.status(400).json({
-          success: false,
-          message: "Maximum 20 skills allowed"
-        });
-      }
     }
 
-    if (field === 'email' && value) {
+    if (field === "email" && value) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(value)) {
         return res.status(400).json({
@@ -221,21 +219,20 @@ router.patch("/:userId/field", auth, async (req, res) => {
       }
     }
 
-    if (field === 'linkedin' && value && !value.includes('linkedin.com')) {
+    if (field === "linkedin" && value && !value.includes("linkedin.com")) {
       return res.status(400).json({
         success: false,
         message: "Invalid LinkedIn URL"
       });
     }
 
-    if (field === 'github' && value && !value.includes('github.com')) {
+    if (field === "github" && value && !value.includes("github.com")) {
       return res.status(400).json({
         success: false,
         message: "Invalid GitHub URL"
       });
     }
 
-    // Update the field
     const updateData = {
       [field]: validatedValue,
       updatedAt: Date.now()
@@ -247,9 +244,9 @@ router.patch("/:userId/field", auth, async (req, res) => {
       {
         new: true,
         runValidators: true,
-        upsert: true // Create profile if it doesn't exist
+        upsert: true
       }
-    ).populate('userId', 'name email role');
+    ).populate("userId", "fname lname email role");
 
     res.status(200).json({
       success: true,
@@ -268,7 +265,7 @@ router.patch("/:userId/field", auth, async (req, res) => {
   } catch (error) {
     console.error("Update field error:", error);
 
-    if (error.name === 'ValidationError') {
+    if (error.name === "ValidationError") {
       return res.status(400).json({
         success: false,
         message: "Validation error",
@@ -283,5 +280,18 @@ router.patch("/:userId/field", auth, async (req, res) => {
   }
 });
 
-// Export router
+// Helper function for completion recommendations
+const getCompletionRecommendations = (fields) => {
+  const recommendations = [];
+  if (!fields.fullName) recommendations.push("Add your full name");
+  if (!fields.email) recommendations.push("Add your email address");
+  if (!fields.phone) recommendations.push("Add your phone number");
+  if (!fields.bio) recommendations.push("Write a short bio about yourself");
+  if (!fields.skills) recommendations.push("Add at least one skill");
+  if (!fields.linkedin) recommendations.push("Add your LinkedIn profile");
+  if (!fields.github) recommendations.push("Add your GitHub profile");
+  if (!fields.location) recommendations.push("Add your location");
+  return recommendations;
+};
+
 export default router;

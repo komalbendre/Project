@@ -874,65 +874,117 @@ const ProfileForm = () => {
 
   // Submit
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!validateForm()) {
-      setMessage({ text: "Please fix the errors below", type: "error" });
+  e.preventDefault();
+  if (!validateForm()) {
+    setMessage({ text: "Please fix the errors below", type: "error" });
+    return;
+  }
+
+  setLoading(true);
+  setMessage({ text: "", type: "" });
+
+  try {
+    // Get userId from localStorage
+    const userId = localStorage.getItem("userId");
+    const token = localStorage.getItem("token");
+
+    if (!userId) {
+      setMessage({ text: "User ID not found. Please login again.", type: "error" });
+      setLoading(false);
       return;
     }
 
-    setLoading(true);
-    setMessage({ text: "", type: "" });
+    if (!token) {
+      setMessage({ text: "Authentication token not found. Please login again.", type: "error" });
+      setLoading(false);
+      return;
+    }
 
-    try {
-      let location = "";
-      if (profile.cityState || profile.country) {
-        if (profile.cityState && profile.country) {
-          location = `${profile.cityState}, ${profile.country}`;
-        } else {
-          location = profile.cityState || profile.country;
+    let location = "";
+    if (profile.cityState || profile.country) {
+      if (profile.cityState && profile.country) {
+        location = `${profile.cityState}, ${profile.country}`;
+      } else {
+        location = profile.cityState || profile.country;
+      }
+    }
+
+    // DON'T merge skills - send them separately
+    const profileData = {
+      fullName: profile.fullName,
+      email: profile.email,
+      phone: profile.phone,
+      bio: profile.bio,
+      technicalSkills: profile.technicalSkills, // Send technical skills
+      softSkills: profile.softSkills,           // Send soft skills separately
+      linkedin: profile.linkedin,
+      github: profile.github,
+      portfolio: profile.portfolio,
+      location: location,
+      // experience: profile.experience,
+      education: profile.education,
+      projects: profile.projects,
+      certifications: profile.certifications
+    };
+
+    // Remove the fields we don't want to send
+    delete profileData.country;
+    delete profileData.cityState;
+
+    console.log("Sending profile data to:", `http://localhost:5000/api/profile/${userId}`);
+    console.log("Profile data:", profileData);
+
+    // Make sure userId is included in the URL
+    const response = await axios.post(
+      `http://localhost:5000/api/profile/${userId}`, 
+      profileData, 
+      {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
       }
+    );
 
-      // DON'T merge skills - send them separately
-      const profileData = {
-        fullName: profile.fullName,
-        email: profile.email,
-        phone: profile.phone,
-        bio: profile.bio,
-        technicalSkills: profile.technicalSkills, // Send technical skills
-        softSkills: profile.softSkills,           // Send soft skills separately
-        linkedin: profile.linkedin,
-        github: profile.github,
-        location: location,
-        // experience: profile.experience,
-        education: profile.education,
-        projects: profile.projects,
-        certifications: profile.certifications
-      };
+    console.log("Profile save response:", response.data);
 
-      // Remove the fields we don't want to send
-      delete profileData.country;
-      delete profileData.cityState;
+    // Clear draft from localStorage after successful save
+    localStorage.removeItem(`profile_draft_${userId}`);
+    setHasUnsavedChanges(false);
 
-      console.log("Sending profile data:", profileData);
-
-      await axios.post(`http://localhost:5000/api/profile/${userId}`, profileData, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+    setMessage({ text: "Profile saved successfully!", type: "success" });
+    
+    // Navigate to profile page after successful save
+    setTimeout(() => navigate("/profile"), 1500);
+    
+  } catch (err) {
+    console.error("Error saving profile:", err);
+    
+    // Better error handling
+    if (err.response) {
+      // The request was made and the server responded with a status code
+      // that falls out of the range of 2xx
+      console.error("Error response data:", err.response.data);
+      console.error("Error response status:", err.response.status);
+      console.error("Error response headers:", err.response.headers);
+      
+      setMessage({ 
+        text: err.response.data?.message || `Server error: ${err.response.status}`, 
+        type: "error" 
       });
-
-      // Clear draft from localStorage after successful save
-      localStorage.removeItem(`profile_draft_${userId}`);
-      setHasUnsavedChanges(false);
-
-      setMessage({ text: "Profile saved successfully!", type: "success" });
-      setTimeout(() => navigate("/profile"), 1500);
-    } catch (err) {
-      console.error("Error saving profile:", err);
-      setMessage({ text: err.response?.data?.message || "Failed to save profile. Please try again.", type: "error" });
-    } finally {
-      setLoading(false);
+    } else if (err.request) {
+      // The request was made but no response was received
+      console.error("Error request:", err.request);
+      setMessage({ text: "No response from server. Please check your connection.", type: "error" });
+    } else {
+      // Something happened in setting up the request that triggered an Error
+      console.error("Error message:", err.message);
+      setMessage({ text: `Error: ${err.message}`, type: "error" });
     }
-  };
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleAddSkill = (skill, category) => {
     const normalizedSkill = skill.trim();
