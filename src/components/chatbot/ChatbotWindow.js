@@ -1,3 +1,4 @@
+// src/components/chatbot/ChatbotWindow.js
 import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import MessageBubble from "./MessageBubble";
@@ -76,7 +77,7 @@ const ChatbotWindow = ({ onClose }) => {
                 right: "20px",
                 width: "350px",
                 height: "500px",
-                background: "white",
+                background: "var(--bg-card)", // Changed from "white"
                 borderRadius: "12px",
                 boxShadow: "0 8px 25px rgba(0,0,0,0.2)",
                 display: "flex",
@@ -87,7 +88,7 @@ const ChatbotWindow = ({ onClose }) => {
             {/* Header */}
             <div
                 style={{
-                    background: "#8e89f4",
+                    background: "var(--primary-color)", // Changed from "#8e89f4"
                     color: "white",
                     padding: "12px",
                     borderTopLeftRadius: "12px",
@@ -118,13 +119,14 @@ const ChatbotWindow = ({ onClose }) => {
                     flex: 1,
                     padding: "10px",
                     overflowY: "auto",
+                    background: "var(--bg-secondary)", // Added for consistency
                 }}
             >
                 {messages.map((msg, index) => (
                     <MessageBubble key={index} message={msg} />
                 ))}
 
-                {loading && <div>Typing...</div>}
+                {loading && <div style={{ color: "var(--text-tertiary)" }}>Typing...</div>} {/* Changed color */}
 
                 <div ref={messagesEndRef} />
             </div>
@@ -134,7 +136,8 @@ const ChatbotWindow = ({ onClose }) => {
                 style={{
                     display: "flex",
                     padding: "10px",
-                    borderTop: "1px solid #ddd",
+                    borderTop: "1px solid var(--border-color)", // Changed from "#ddd"
+                    background: "var(--bg-primary)", // Added for consistency
                 }}
             >
                 <input
@@ -146,7 +149,9 @@ const ChatbotWindow = ({ onClose }) => {
                         flex: 1,
                         padding: "8px",
                         borderRadius: "6px",
-                        border: "1px solid #ccc",
+                        border: "1px solid var(--border-color)", // Changed from "#ccc"
+                        background: "var(--input-bg)", // Added
+                        color: "var(--text-primary)", // Added
                     }}
                     onKeyDown={(e) => e.key === "Enter" && sendMessage()}
                 />
@@ -156,7 +161,7 @@ const ChatbotWindow = ({ onClose }) => {
                     style={{
                         marginLeft: "8px",
                         padding: "8px 12px",
-                        background: "#665ff2",
+                        background: "var(--primary-color)", // Changed from "#665ff2"
                         color: "white",
                         border: "none",
                         borderRadius: "6px",

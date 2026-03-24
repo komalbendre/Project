@@ -146,13 +146,13 @@ export const styles = {
 
     // Main Layout
     dashboardContainer: {
-        paddingTop: "52px",
         minHeight: "100vh",
     },
     mainContent: {
         maxWidth: "1200px",
         margin: "0 auto",
         padding: "24px",
+        paddingTop: "20px", 
     },
 
     // Welcome Section (LinkedIn Style)
@@ -413,26 +413,21 @@ export const styles = {
         color: "#ef4444",
         border: "1px solid #ef4444",
     },
-    // viewButton: {
-    //     background: "white",
-    //     color: "#0073b1",
-    //     border: "1px solid #0073b1",
-    // },
     viewButton: {
-    display: "flex",
-    alignItems: "center",
-    gap: "6px",
-    padding: "8px 16px",
-    background: "#f0f7ff",
-    color: "#0073b1",
-    border: "1px solid #0073b1",
-    borderRadius: "6px",
-    cursor: "pointer",
-    fontSize: "14px",
-    fontWeight: "500",
-    transition: "all 0.2s ease",
-    whiteSpace: "nowrap",
-},
+        display: "flex",
+        alignItems: "center",
+        gap: "6px",
+        padding: "8px 16px",
+        background: "#f0f7ff",
+        color: "#0073b1",
+        border: "1px solid #0073b1",
+        borderRadius: "6px",
+        cursor: "pointer",
+        fontSize: "14px",
+        fontWeight: "500",
+        transition: "all 0.2s ease",
+        whiteSpace: "nowrap",
+    },
     suspendButton: {
         background: "white",
         color: "#dc2626",

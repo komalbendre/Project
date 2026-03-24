@@ -99,10 +99,10 @@ const Navbar = ({ activeTab, setActiveTab }) => {
         { id: "reports", Icon: NavIcons.Reports, label: "Reports" },
     ];
 
-    // Dropdown menu items
+    // Dropdown menu items - REMOVED LOGOUT ITEM
     const dropdownItems = [
-        { id: "settings", label: "Settings", icon: <NavIcons.Edit /> },
-        { id: "logout", label: "Logout", icon: <NavIcons.Logout /> }
+        { id: "settings", label: "Settings", icon: <NavIcons.Edit /> }
+        // Logout item removed from dropdown
     ];
 
     // Fetch admin info on component mount
@@ -150,9 +150,6 @@ const Navbar = ({ activeTab, setActiveTab }) => {
                 // Add settings navigation here
                 alert("Settings page coming soon!");
                 break;
-            case "logout":
-                handleLogout();
-                break;
             default:
                 break;
         }
@@ -177,19 +174,6 @@ const Navbar = ({ activeTab, setActiveTab }) => {
             document.removeEventListener('mousedown', handleClickOutside);
         };
     }, []);
-
-    // Get initials for avatar
-    const getInitials = () => {
-        if (adminName) {
-            return adminName
-                .split(" ")
-                .map(n => n[0])
-                .join("")
-                .toUpperCase()
-                .slice(0, 2);
-        }
-        return "A";
-    };
 
     const styles = {
         nav: {
@@ -410,12 +394,11 @@ const Navbar = ({ activeTab, setActiveTab }) => {
             <nav style={styles.nav}>
                 <div style={styles.left}>
                     <div style={styles.logo} onClick={() => navigate("/admin/dashboard")}>
-                        <NavIcons.Logo />
                         <span className="logo-text">Admin Portal</span>
                     </div>
 
-                    {/* Search Bar */}
-                    <form onSubmit={handleSearch} style={styles.searchBar} className="search-bar">
+                    {/* Search Bar - Commented out */}
+                    {/* <form onSubmit={handleSearch} style={styles.searchBar} className="search-bar">
                         <NavIcons.Search />
                         <input
                             type="text"
@@ -424,7 +407,7 @@ const Navbar = ({ activeTab, setActiveTab }) => {
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
-                    </form>
+                    </form> */}
                 </div>
 
                 {/* Desktop Menu */}
@@ -483,9 +466,6 @@ const Navbar = ({ activeTab, setActiveTab }) => {
                             <div style={styles.dropdown}>
                                 <div style={styles.dropdownHeader}>
                                     <div style={styles.dropdownHeaderTitle}>Admin Account</div>
-                                    <div style={styles.dropdownHeaderEmail}>
-                                        {adminEmail || 'Loading...'}
-                                    </div>
                                     {adminName && (
                                         <div style={styles.dropdownHeaderName}>
                                             {adminName}
@@ -511,7 +491,7 @@ const Navbar = ({ activeTab, setActiveTab }) => {
                                         <span style={styles.dropdownIcon}>
                                             {item.icon}
                                         </span>
-                                        <span style={{ color: item.id === "logout" ? "#d92c45" : "#191919" }}>
+                                        <span style={{ color: "#191919" }}>
                                             {item.label}
                                         </span>
                                     </div>
@@ -523,7 +503,7 @@ const Navbar = ({ activeTab, setActiveTab }) => {
                     {/* Divider */}
                     <span style={styles.divider}></span>
 
-                    {/* Logout Button */}
+                    {/* Logout Button - Keep this separate */}
                     <button
                         style={styles.logoutButton}
                         onClick={handleLogout}
@@ -532,7 +512,7 @@ const Navbar = ({ activeTab, setActiveTab }) => {
                         Logout
                     </button>
 
-                    {/* Mobile Menu Button (you can implement mobile menu later) */}
+                    {/* Mobile Menu Button */}
                     <button
                         style={styles.mobileMenuButton}
                         className="mobile-menu-button"
@@ -541,9 +521,6 @@ const Navbar = ({ activeTab, setActiveTab }) => {
                     </button>
                 </div>
             </nav>
-
-            {/* Spacer for content */}
-            <div style={{ height: "70px" }} />
         </>
     );
 };

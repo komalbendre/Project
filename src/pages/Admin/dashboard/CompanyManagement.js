@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Icons } from '../utils/icons';
 import { styles } from '../styles/adminDashboardStyles';
 
@@ -12,6 +12,9 @@ const CompanyManagement = ({
     getInitials,
     formatDate 
 }) => {
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 5;
+
     // Get pending companies for the right column
     const pendingCompanies = companies.filter(company => company.status === 'pending');
     
@@ -30,6 +33,21 @@ const CompanyManagement = ({
         return true;
     });
 
+    // Pagination logic
+    const totalPages = Math.ceil(filteredCompanies.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const currentCompanies = filteredCompanies.slice(startIndex, endIndex);
+
+    const handlePageChange = (page) => {
+        setCurrentPage(page);
+        // Scroll to top of the companies list
+        const companiesContainer = document.querySelector('.companies-list-container');
+        if (companiesContainer) {
+            companiesContainer.scrollTop = 0;
+        }
+    };
+
     // Custom styles for two-column layout
     const twoColumnStyles = {
         container: {
@@ -43,6 +61,8 @@ const CompanyManagement = ({
             borderRadius: '8px',
             border: '1px solid #e0e0e0',
             overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
         },
         columnHeader: {
             padding: '20px',
@@ -70,6 +90,7 @@ const CompanyManagement = ({
         columnContent: {
             maxHeight: '600px',
             overflowY: 'auto',
+            flex: 1,
         },
         companyItem: {
             padding: '16px 20px',
@@ -143,6 +164,42 @@ const CompanyManagement = ({
             textAlign: 'center',
             color: '#94a3b8',
         },
+        pagination: {
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '16px 20px',
+            borderTop: '1px solid #e0e0e0',
+            background: 'white',
+        },
+        pageButton: {
+            padding: '8px 12px',
+            border: '1px solid #e0e0e0',
+            background: 'white',
+            color: '#666',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: 500,
+            transition: 'all 0.2s ease',
+            minWidth: '36px',
+            textAlign: 'center',
+        },
+        pageButtonActive: {
+            background: '#0073b1',
+            color: 'white',
+            borderColor: '#0073b1',
+        },
+        pageButtonDisabled: {
+            opacity: 0.5,
+            cursor: 'not-allowed',
+        },
+        pageInfo: {
+            fontSize: '14px',
+            color: '#666',
+            margin: '0 12px',
+        },
     };
 
     return (
@@ -165,7 +222,10 @@ const CompanyManagement = ({
                         <select
                             style={styles.filterSelect}
                             value={filters.companyStatus}
-                            onChange={(e) => setFilters({ ...filters, companyStatus: e.target.value })}
+                            onChange={(e) => {
+                                setFilters({ ...filters, companyStatus: e.target.value });
+                                setCurrentPage(1); // Reset to first page when filter changes
+                            }}
                             onMouseEnter={(e) => {
                                 e.target.style.borderColor = "#0073b1";
                             }}
@@ -177,19 +237,6 @@ const CompanyManagement = ({
                             <option value="approved">Approved Only</option>
                             <option value="rejected">Rejected Only</option>
                         </select>
-                        <button
-                            style={styles.refreshButton}
-                            onClick={fetchDashboardData}
-                            onMouseEnter={(e) => {
-                                e.target.style.background = "#006097";
-                            }}
-                            onMouseLeave={(e) => {
-                                e.target.style.background = "#0073b1";
-                            }}
-                        >
-                            <Icons.Refresh />
-                            Refresh
-                        </button>
                     </div>
                 </div>
             </div>
@@ -210,14 +257,14 @@ const CompanyManagement = ({
                         </span>
                     </div>
                     
-                    <div style={twoColumnStyles.columnContent}>
-                        {filteredCompanies.length === 0 ? (
+                    <div style={twoColumnStyles.columnContent} className="companies-list-container">
+                        {currentCompanies.length === 0 ? (
                             <div style={twoColumnStyles.emptyColumn}>
                                 <Icons.Building />
                                 <p>No companies found with the selected filter</p>
                             </div>
                         ) : (
-                            filteredCompanies.map((company) => {
+                            currentCompanies.map((company) => {
                                 const user = company.userId;
                                 const statusBadge = getStatusBadge(company.status);
 
@@ -286,6 +333,88 @@ const CompanyManagement = ({
                             })
                         )}
                     </div>
+
+                    {/* Pagination */}
+                    {filteredCompanies.length > itemsPerPage && (
+                        <div style={twoColumnStyles.pagination}>
+                            <button
+                                style={{
+                                    ...twoColumnStyles.pageButton,
+                                    ...(currentPage === 1 && twoColumnStyles.pageButtonDisabled)
+                                }}
+                                onClick={() => handlePageChange(currentPage - 1)}
+                                disabled={currentPage === 1}
+                                onMouseEnter={(e) => {
+                                    if (currentPage !== 1) {
+                                        e.target.style.background = "#f0f7ff";
+                                    }
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.target.style.background = "white";
+                                }}
+                            >
+                                <Icons.ArrowLeft />
+                            </button>
+                            
+                            {[...Array(totalPages)].map((_, index) => {
+                                const pageNumber = index + 1;
+                                // Show first page, last page, current page, and pages around current
+                                if (
+                                    pageNumber === 1 ||
+                                    pageNumber === totalPages ||
+                                    (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)
+                                ) {
+                                    return (
+                                        <button
+                                            key={pageNumber}
+                                            style={{
+                                                ...twoColumnStyles.pageButton,
+                                                ...(currentPage === pageNumber && twoColumnStyles.pageButtonActive)
+                                            }}
+                                            onClick={() => handlePageChange(pageNumber)}
+                                            onMouseEnter={(e) => {
+                                                if (currentPage !== pageNumber) {
+                                                    e.target.style.background = "#f0f7ff";
+                                                }
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                if (currentPage !== pageNumber) {
+                                                    e.target.style.background = "white";
+                                                }
+                                            }}
+                                        >
+                                            {pageNumber}
+                                        </button>
+                                    );
+                                } else if (
+                                    (pageNumber === 2 && currentPage > 3) ||
+                                    (pageNumber === totalPages - 1 && currentPage < totalPages - 2)
+                                ) {
+                                    return <span key={pageNumber} style={twoColumnStyles.pageInfo}>...</span>;
+                                }
+                                return null;
+                            })}
+                            
+                            <button
+                                style={{
+                                    ...twoColumnStyles.pageButton,
+                                    ...(currentPage === totalPages && twoColumnStyles.pageButtonDisabled)
+                                }}
+                                onClick={() => handlePageChange(currentPage + 1)}
+                                disabled={currentPage === totalPages}
+                                onMouseEnter={(e) => {
+                                    if (currentPage !== totalPages) {
+                                        e.target.style.background = "#f0f7ff";
+                                    }
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.target.style.background = "white";
+                                }}
+                            >
+                                <Icons.ArrowRight />
+                            </button>
+                        </div>
+                    )}
                 </div>
 
                 {/* Right Column - Pending Approvals */}

@@ -18,6 +18,7 @@ import applicationRoutes from "./routes/applicationRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
 import analyticsRoutes from "./routes/analyticsRoutes.js";
 import aiCareerRoutes from './routes/aiCareerRoutes.js';
+import settingsRoutes from './routes/settingsRoutes.js';
 
 dotenv.config();
 
@@ -26,16 +27,17 @@ connectDB();
 
 const app = express();
 
-// Middleware
-app.use(express.json());          
-app.use(express.urlencoded({ extended: true }));
-
+// CORS first (best practice)
 app.use(cors({
   origin: "http://localhost:3000",
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
+// Middleware
+app.use(express.json());          
+app.use(express.urlencoded({ extended: true }));
 
 // Debug middleware
 app.use((req, res, next) => {
@@ -59,6 +61,7 @@ app.use("/api/applications", applicationRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use('/api/ai', aiCareerRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // Health check
 app.get("/health", (req, res) => {
@@ -80,7 +83,6 @@ app.use((req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
-
 
 app.listen(PORT, () => {
   console.log(`Backend running at: http://localhost:${PORT}`);
