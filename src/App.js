@@ -26,6 +26,7 @@ import Internships from "./pages/Internships";
 import CompanyInterviews from './pages/Company/CompanyInterviews';
 import ChatbotWidget from "./components/chatbot/ChatbotWidget";
 import CompanyNavbar from "./components/CompanyNavbar";
+import Footer from "./components/Footer";
 
 // FIX: single source of truth for navbar height — matches Navbar.js
 const NAVBAR_HEIGHT = 64;
@@ -151,6 +152,8 @@ function App() {
       {isAuthenticated && !isAdminRoute && !isCompanyRoute && (
         <ChatbotWidget />
       )}
+
+      <Footer />
     </div>
   );
 }
