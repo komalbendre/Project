@@ -12,8 +12,8 @@ import {
 } from "recharts";
 import axios from "axios";
 
-
 const Dashboard = () => {
+  // State declarations
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
@@ -43,7 +43,7 @@ const Dashboard = () => {
     savedCareerPaths: { value: 0, trend: 0 },
   });
 
-  // Quick Actions
+  // Quick actions configuration
   const quickActions = [
     {
       icon: (
@@ -77,11 +77,13 @@ const Dashboard = () => {
     },
   ];
 
+  // Helper functions
   const calculateTrend = (oldValue, newValue) => {
     if (oldValue === 0) return newValue > 0 ? 100 : 0;
     return ((newValue - oldValue) / oldValue * 100).toFixed(1);
   };
 
+  // Load saved internships count
   const loadSavedInternshipsCount = () => {
     const saved = localStorage.getItem("savedInternships");
     if (saved) {
@@ -107,6 +109,7 @@ const Dashboard = () => {
     }
   };
 
+  // Load saved career paths count
   const loadSavedCareerPathsCount = () => {
     const saved = localStorage.getItem("savedCareerPaths");
     if (saved) {
@@ -137,7 +140,6 @@ const Dashboard = () => {
     try {
       const token = localStorage.getItem("token");
       
-      // Get all user applications
       const response = await axios.get(
         `http://localhost:5000/api/applications/user?limit=100`,
         { headers: { Authorization: `Bearer ${token}` } }
@@ -146,11 +148,9 @@ const Dashboard = () => {
       if (response.data.success) {
         const applications = response.data.data;
         
-        // Group applications by month
         const monthlyData = {};
         const last6Months = [];
         
-        // Get last 6 months
         for (let i = 5; i >= 0; i--) {
           const date = new Date();
           date.setMonth(date.getMonth() - i);
@@ -159,7 +159,6 @@ const Dashboard = () => {
           monthlyData[monthYear] = 0;
         }
 
-        // Count applications per month
         applications.forEach(app => {
           const date = new Date(app.appliedDate);
           const monthYear = date.toLocaleString('default', { month: 'short', year: 'numeric' });
@@ -168,7 +167,6 @@ const Dashboard = () => {
           }
         });
 
-        // Format for chart
         const timelineData = last6Months.map(month => ({
           month,
           applications: monthlyData[month] || 0
@@ -195,7 +193,6 @@ const Dashboard = () => {
       if (response.data.success) {
         const { statusCounts, totalApplications } = response.data.data;
         
-        // Get interviews count from applications with scheduled interviews
         const applicationsResponse = await axios.get(
           `http://localhost:5000/api/applications/user?limit=100`,
           { headers: { Authorization: `Bearer ${token}` } }
@@ -206,7 +203,6 @@ const Dashboard = () => {
           interviewsCount = applicationsResponse.data.data.filter(app => app.interview?.scheduled).length;
         }
         
-        // Define funnel stages with colors
         const stages = [
           { stage: 'Applied', value: statusCounts.pending || 0, color: '#3b82f6' },
           { stage: 'Reviewed', value: statusCounts.reviewed || 0, color: '#8b5cf6' },
@@ -217,7 +213,6 @@ const Dashboard = () => {
         
         setApplicationsFunnelData(stages);
         
-        // Update stats - removed offers
         setStats(prev => ({
           ...prev,
           applications: {
@@ -236,6 +231,7 @@ const Dashboard = () => {
     }
   };
 
+  // Main effect for loading data
   useEffect(() => {
     const userRole = localStorage.getItem("userRole");
     const isApproved = localStorage.getItem("isApproved") === "true";
@@ -254,68 +250,65 @@ const Dashboard = () => {
     }
 
     const fetchUserData = async () => {
-  try {
-    // First fetch user data
-    const userResponse = await fetch(
-      `http://localhost:5000/api/users/me`,
-      {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
+      try {
+        const userResponse = await fetch(
+          `http://localhost:5000/api/users/me`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
 
-    if (userResponse.ok) {
-      const userData = await userResponse.json();
-      
-      // Then fetch profile data
-      const profileResponse = await fetch(
-        `http://localhost:5000/api/profile/me`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
+        if (userResponse.ok) {
+          const userData = await userResponse.json();
+          
+          const profileResponse = await fetch(
+            `http://localhost:5000/api/profile/me`,
+            {
+              method: "GET",
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+            }
+          );
+
+          let profileData = null;
+          if (profileResponse.ok) {
+            profileData = await profileResponse.json();
+          }
+
+          setUser({
+            name: `${userData.data.fname} ${userData.data.lname}`,
+            role: userData.data.role === "company_admin" ? "Company Admin" : "User",
+            location: profileData?.data?.location || "Location not set",
+            university: profileData?.data?.university || "Add your university",
+            graduation: profileData?.data?.graduation || "Add graduation date",
+            connections: profileData?.data?.connections || 0,
+            profileViews: profileData?.data?.profileViews || 0,
+            avatarColor: "#0073b1",
+          });
+
+          localStorage.setItem("userName", `${userData.data.fname} ${userData.data.lname}`);
         }
-      );
-
-      let profileData = null;
-      if (profileResponse.ok) {
-        profileData = await profileResponse.json();
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+        const userName = localStorage.getItem("userName") || "User";
+        setUser({
+          name: userName,
+          role: localStorage.getItem("userRole") === "company_admin" ? "Company Admin" : "User",
+          location: "Set your location",
+          university: "Add your university",
+          graduation: "Add graduation date",
+          connections: 0,
+          profileViews: 0,
+          avatarColor: "#0073b1",
+        });
       }
-
-      // Combine user and profile data
-      setUser({
-        name: `${userData.data.fname} ${userData.data.lname}`,
-        role: userData.data.role === "company_admin" ? "Company Admin" : "User",
-        location: profileData?.data?.location || "Location not set",
-        university: profileData?.data?.university || "Add your university",
-        graduation: profileData?.data?.graduation || "Add graduation date",
-        connections: profileData?.data?.connections || 0,
-        profileViews: profileData?.data?.profileViews || 0,
-        avatarColor: "#0073b1",
-      });
-
-      localStorage.setItem("userName", `${userData.data.fname} ${userData.data.lname}`);
-    }
-  } catch (error) {
-    console.error("Error fetching user data:", error);
-    const userName = localStorage.getItem("userName") || "User";
-    setUser({
-      name: userName,
-      role: localStorage.getItem("userRole") === "company_admin" ? "Company Admin" : "User",
-      location: "Set your location",
-      university: "Add your university",
-      graduation: "Add graduation date",
-      connections: 0,
-      profileViews: 0,
-      avatarColor: "#0073b1",
-    });
-  }
-};
+    };
 
     const fetchAllDashboardData = async () => {
       await Promise.all([
@@ -392,7 +385,6 @@ const Dashboard = () => {
       }
     };
 
-    // Load saved counts
     loadSavedInternshipsCount();
     loadSavedCareerPathsCount();
 
@@ -406,7 +398,6 @@ const Dashboard = () => {
       setLoading(false);
     });
 
-    // Listen for storage changes
     const handleInternshipsStorageChange = (e) => {
       if (e.key === 'savedInternships') {
         loadSavedInternshipsCount();
@@ -503,6 +494,7 @@ const Dashboard = () => {
     }
   };
 
+  // Modal handlers
   const handleApplicationsClick = () => {
     setIsApplicationsModalOpen(true);
   };
@@ -519,6 +511,7 @@ const Dashboard = () => {
     setIsSavedCareerPathsModalOpen(true);
   };
 
+  // Quick action handler
   const handleQuickAction = (action) => {
     switch (action) {
       case "build_resume":
@@ -538,6 +531,7 @@ const Dashboard = () => {
     }
   };
 
+  // Notification handlers
   const handleNotificationClick = async (notification) => {
     try {
       const token = localStorage.getItem("token");
@@ -635,7 +629,7 @@ const Dashboard = () => {
       .slice(0, 2);
   };
 
-  // Custom Tooltip for Applications Funnel
+  // Custom tooltip for funnel chart
   const CustomFunnelTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
@@ -672,7 +666,7 @@ const Dashboard = () => {
     return null;
   };
 
-  // Custom Tooltip for Line Chart
+  // Custom tooltip for line chart
   const CustomLineTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       return (
@@ -695,7 +689,7 @@ const Dashboard = () => {
     return null;
   };
 
-  // All CSS styles in a single object
+  // All css styles
   const styles = {
     global: `
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -757,7 +751,7 @@ const Dashboard = () => {
     }
   `,
 
-    // Main Layout
+    // Main layout
     dashboardContainer: {
       minHeight: "100vh",
       animation: "fadeIn 0.5s ease-out",
@@ -772,7 +766,7 @@ const Dashboard = () => {
       alignItems: "start",
     },
 
-    // Profile Card
+    // Profile card
     profileCard: {
       background: "linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)",
       borderRadius: "16px",
@@ -847,7 +841,7 @@ const Dashboard = () => {
       marginTop: "4px",
     },
 
-    // Main Feed
+    // Main feed
     mainFeed: {
       display: "flex",
       flexDirection: "column",
@@ -894,7 +888,7 @@ const Dashboard = () => {
       transition: "all 0.2s",
     },
 
-    // Stats Cards - Updated to 4 cards
+    // Stats cards
     statsGrid: {
       display: "grid",
       gridTemplateColumns: "repeat(4, 1fr)",
@@ -953,7 +947,7 @@ const Dashboard = () => {
       color: "#94a3b8",
     },
 
-    // Quick Actions
+    // Quick actions
     quickActionsGrid: {
       display: "grid",
       gridTemplateColumns: "repeat(2, 1fr)",
@@ -998,7 +992,7 @@ const Dashboard = () => {
       fontWeight: 400,
     },
 
-    // Chart Styles
+    // Chart styles
     chartContainer: {
       marginTop: "8px",
     },
@@ -1014,7 +1008,7 @@ const Dashboard = () => {
       width: "100%",
     },
 
-    // Right Sidebar
+    // Right sidebar
     rightSidebar: {
       position: "sticky",
       top: "88px",
@@ -1167,7 +1161,7 @@ const Dashboard = () => {
       lineHeight: 1.6,
     },
 
-    // Loading State
+    // Loading state
     loadingContainer: {
       display: "flex",
       justifyContent: "center",
@@ -1184,7 +1178,7 @@ const Dashboard = () => {
       animation: "spin 1s linear infinite",
     },
 
-    // Company Approval Screen Styles
+    // Company approval screen styles
     approvalContainer: {
       display: "flex",
       justifyContent: "center",
@@ -1252,7 +1246,7 @@ const Dashboard = () => {
     },
   };
 
-  // Company Not Approved Screen
+  // Company not approved screen
   if (!isCompanyApproved) {
     return (
       <div style={styles.approvalContainer}>
@@ -1303,6 +1297,7 @@ const Dashboard = () => {
     );
   }
 
+  // Loading state
   if (loading) {
     return (
       <div style={styles.loadingContainer}>
@@ -1312,15 +1307,16 @@ const Dashboard = () => {
     );
   }
 
+  // Main dashboard render
   return (
     <div style={styles.dashboardContainer}>
       <style>{styles.global}</style>
 
-      {/* Main Content */}
+      {/* Main content */}
       <div style={styles.mainContent}>
-        {/* Main Feed */}
+        {/* Main feed section */}
         <div style={styles.mainFeed}>
-          {/* Enhanced Profile Card */}
+          {/* Profile card */}
           <div style={styles.profileCard} className="hover-lift">
             <div style={styles.profileHeader}>
               <div style={styles.profileAvatar}>
@@ -1338,7 +1334,7 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Applications Overview Card */}
+          {/* Applications overview card */}
           <div style={styles.sectionCard} className="hover-lift">
             <div style={styles.sectionHeader}>
               <div>
@@ -1406,7 +1402,7 @@ const Dashboard = () => {
               ))}
             </div>
 
-            {/* Applications Funnel Chart - Dynamic */}
+            {/* Applications funnel chart */}
             {applicationsFunnelData.length > 0 ? (
               <div style={styles.chartContainer}>
                 <div style={styles.chartWrapper}>
@@ -1452,7 +1448,7 @@ const Dashboard = () => {
               </div>
             )}
 
-            {/* Quick Actions */}
+            {/* Quick actions */}
             <div style={{ marginTop: "32px" }}>
               <div style={styles.sectionHeader}>
                 <h3 style={styles.sectionTitle}>Quick Actions</h3>
@@ -1499,7 +1495,7 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Applications Over Time Card - Dynamic */}
+          {/* Applications timeline chart */}
           {applicationsOverTimeData.length > 0 ? (
             <div style={styles.sectionCard} className="hover-lift">
               <div style={styles.sectionHeader}>
@@ -1555,9 +1551,9 @@ const Dashboard = () => {
           ) : null}
         </div>
 
-        {/* Right Sidebar */}
+        {/* Right sidebar section */}
         <div style={styles.rightSidebar}>
-          {/* Notifications Card */}
+          {/* Notifications card */}
           <div style={styles.sidebarCard} className="hover-lift">
             <div style={styles.sidebarHeader}>
               <h3 style={styles.sidebarTitle}>

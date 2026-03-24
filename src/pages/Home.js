@@ -2,7 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 
 const Home = () => {
-  // CSS Styles
+  // Css styles object containing all component styling
   const styles = {
     container: {
       fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif",
@@ -259,6 +259,7 @@ const Home = () => {
     },
   };
 
+  // Animation keyframes and hover effects
   const styleTag = `
     @keyframes fadeInUp {
       from {
@@ -312,6 +313,7 @@ const Home = () => {
     }
   `;
 
+  // Hover effect handlers
   const handleButtonHover = (e, isHover) => {
     if (isHover) {
       e.currentTarget.style.transform = "translateY(-3px)";
@@ -336,7 +338,7 @@ const Home = () => {
     <div style={styles.container}>
       <style>{styleTag}</style>
 
-      {/* Hero Section */}
+      {/* Hero section */}
       <section style={styles.hero}>
         <div style={styles.heroBg}></div>
         <div style={styles.heroContent}>
@@ -358,19 +360,19 @@ const Home = () => {
               🚀 Get Started Free
             </Link>
             <Link 
-  to="/career-paths" 
-  style={styles.secondaryButton}
-  onMouseEnter={(e) => handleButtonHover(e, true)}
-  onMouseLeave={(e) => handleButtonHover(e, false)}
-  className="button-hover"
->
-  📝 Learn More
-</Link>
+              to="/career-paths" 
+              style={styles.secondaryButton}
+              onMouseEnter={(e) => handleButtonHover(e, true)}
+              onMouseLeave={(e) => handleButtonHover(e, false)}
+              className="button-hover"
+            >
+              📝 Learn More
+            </Link>
           </div>
         </div>
       </section>
 
-      {/* Stats Section */}
+      {/* Stats section */}
       <section style={{ ...styles.section, paddingTop: "3rem" }}>
         <div style={styles.stats}>
           <div style={styles.stat}>
@@ -392,7 +394,7 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Features Section */}
+      {/* Features section */}
       <section style={styles.section}>
         <h2 style={styles.sectionTitle}>
           Powerful Features
@@ -446,7 +448,7 @@ const Home = () => {
         </div>
       </section>
 
-      {/* How It Works */}
+      {/* How it works section */}
       <section style={{ ...styles.section, background: "#f8fafc", borderRadius: "30px" }}>
         <h2 style={styles.sectionTitle}>
           How It Works
@@ -486,7 +488,7 @@ const Home = () => {
         </div>
       </section>
 
-      {/* CTA Section */}
+      {/* Call to action section */}
       <section style={styles.cta}>
         <h2 style={styles.ctaTitle}>
           Ready to Transform Your Career?
@@ -509,7 +511,7 @@ const Home = () => {
         </p>
       </section>
 
-      {/* Footer */}
+      {/* Footer section */}
       <footer style={styles.footer}>
         <p>© {new Date().getFullYear()} CareerSync. All rights reserved.</p>
         <p style={{ marginTop: "0.5rem" }}>

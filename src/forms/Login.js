@@ -181,6 +181,7 @@ function Login() {
             required
           />
  
+          {/* Role selector - commented out for now
           <select
             style={styles.select}
             value={form.role}
@@ -190,6 +191,7 @@ function Login() {
             <option value="company_admin">Company</option>
             <option value="admin">Admin</option>
           </select>
+          */}
  
           <button
             style={{

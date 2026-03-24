@@ -7,6 +7,7 @@ import UserManagement from "./UserManagement";
 import UserDetailModal from "./UserDetailModal";
 import { Icons } from "../utils/icons";
 import { styles } from "../styles/adminDashboardStyles";
+import Reports from "./Reports";
 
 const AdminDashboard = () => {
     const [users, setUsers] = useState([]);
@@ -760,24 +761,8 @@ const AdminDashboard = () => {
 
                 {/* Reports - Coming Soon */}
                 {activeNavItem === "reports" && (
-                    <div style={styles.card}>
-                        <div style={styles.cardHeader}>
-                            <h2 style={styles.cardTitle}>
-                                <Icons.Reports />
-                                Reports
-                            </h2>
-                        </div>
-                        <div style={styles.emptyState}>
-                            <div style={styles.emptyIcon}>
-                                <Icons.Reports />
-                            </div>
-                            <p style={styles.emptyText}>Reports feature coming soon!</p>
-                            <p style={{...styles.emptyText, fontSize: '13px', marginTop: '8px'}}>
-                                Generate detailed analytics and insights about platform usage.
-                            </p>
-                        </div>
-                    </div>
-                )}
+    <Reports />
+)}
             </div>
 
             {/* User Detail Modal */}

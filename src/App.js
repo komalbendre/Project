@@ -18,143 +18,193 @@ import CompanyApplications from './pages/Company/CompanyApplications';
 import CompanyAnalytics from './pages/Company/CompanyAnalytics';
 import EditCompanyProfile from './pages/Company/EditCompanyProfile';
 import CompanyInternships from './pages/Company/CompanyInternships';
-import EditInternship from './pages/Company/EditInternship';
 import CompanyInternshipView from './pages/Company/CompanyInternshipView';
 import CreateInternship from './pages/Company/CreateInternship';
 import CompanyDetails from "./pages/Admin/dashboard/CompanyDetails";
 import Internships from "./pages/Internships";
 import CompanyInterviews from './pages/Company/CompanyInterviews';
 import ChatbotWidget from "./components/chatbot/ChatbotWidget";
-import CompanyNavbar from "./components/CompanyNavbar";
+import CompanySidebar from "./components/CompanySidebar";
 import Footer from "./components/Footer";
+import Settings from './pages/Settings';
+import { ThemeProvider } from './context/ThemeContext';
 
-// FIX: single source of truth for navbar height — matches Navbar.js
 const NAVBAR_HEIGHT = 64;
 
 function App() {
   const location = useLocation();
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const isAuthenticated = !!localStorage.getItem("token");
 
   const isCompanyRoute = location.pathname.startsWith('/company/');
   const isAdminRoute = location.pathname.startsWith('/admin/');
   const hideAllNavbars = ['/login', '/signup'].includes(location.pathname);
 
-  // FIX: App.js no longer applies paddingTop — the Navbar component
-  // renders its own spacer div (height = NAVBAR_HEIGHT) right after
-  // the fixed <nav> element, which naturally pushes all page content down.
-  // Adding paddingTop here on top of that spacer was causing double gap.
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768) {
+        setSidebarOpen(false);
+      } else {
+        setSidebarOpen(true);
+      }
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const toggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen);
+  };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f8fafc" }}>
+    <ThemeProvider>
+      <div style={{ minHeight: "100vh", background: "var(--bg-secondary, #f8fafc)" }}>
 
-      {/* User navbar — includes its own spacer, no extra paddingTop needed */}
-      {!hideAllNavbars && !isCompanyRoute && !isAdminRoute && (
-        <Navbar />
-      )}
+        {/* User Navbar */}
+        {!hideAllNavbars && !isCompanyRoute && !isAdminRoute && (
+          <Navbar />
+        )}
 
-      {/* Company navbar */}
-      {isCompanyRoute && !hideAllNavbars && (
-        <CompanyNavbar />
-      )}
+        {/* Company Sidebar */}
+        {isCompanyRoute && !hideAllNavbars && (
+          <CompanySidebar isOpen={sidebarOpen} onToggle={toggleSidebar} />
+        )}
 
-      {/* Admin navbar placeholder — fixed height matches NAVBAR_HEIGHT */}
-      {isAdminRoute && !hideAllNavbars && (
-        <>
-          <div
-            style={{
-              background: '#0F172A',
-              color: 'white',
-              padding: '0 2rem',
-              height: `${NAVBAR_HEIGHT}px`,
-              display: 'flex',
-              alignItems: 'center',
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              zIndex: 1000,
-              fontSize: '14px',
-              fontWeight: '600',
-            }}
-          >
-            Admin Portal
-          </div>
-          {/* Spacer to push content below fixed admin navbar */}
-          <div style={{ height: `${NAVBAR_HEIGHT}px` }} />
-        </>
-      )}
+        {/* Admin Navbar */}
+        {isAdminRoute && !hideAllNavbars && (
+          <>
+            <div
+              style={{
+                background: '#0F172A',
+                color: 'white',
+                padding: '0 2rem',
+                height: `${NAVBAR_HEIGHT}px`,
+                display: 'flex',
+                alignItems: 'center',
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                zIndex: 1000,
+                fontSize: '14px',
+                fontWeight: '600',
+              }}
+            >
+              Admin Portal
+            </div>
+            <div style={{ height: `${NAVBAR_HEIGHT}px` }} />
+          </>
+        )}
 
-      {/* Page content — no paddingTop here, spacing handled by navbar spacers above */}
-      <Routes>
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/" element={<Home />} />
-        <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/my-profile" element={<MyProfile />} />
-        <Route path="/profile-form" element={<ProfileForm />} />
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="/career-paths" element={<CareerPaths />} />
-        <Route path="/jobs" element={<Internships />} />
-        <Route
-          path="/apply/:internshipId"
-          element={
-            <ProtectedRoute>
-              <ApplyPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="/resume" element={<ResumeBuilder />} />
-        <Route
-          path="/admin/dashboard"
-          element={
-            <ProtectedRoute>
-              <AdminDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/companies/:companyId"
-          element={
-            <ProtectedRoute>
-              <CompanyDetails />
-            </ProtectedRoute>
-          }
-        />
+        {/* Main Content */}
+        <div
+          style={{
+            marginLeft: isCompanyRoute && !hideAllNavbars
+              ? (sidebarOpen ? '260px' : '80px')
+              : '0',
+            transition: 'margin-left 0.3s ease',
+          }}
+        >
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/" element={<Home />} />
+            <Route path="/career-paths" element={<CareerPaths />} />
+            <Route path="/jobs" element={<Internships />} />
+            <Route path="/resume" element={<ResumeBuilder />} />
 
-        {/* Company Routes */}
-        <Route path="/company/dashboard" element={<ProtectedRoute><CompanyDashboard /></ProtectedRoute>} />
-        <Route path="/company/applications" element={<ProtectedRoute><CompanyApplications /></ProtectedRoute>} />
-        <Route path="/company/analytics" element={<ProtectedRoute><CompanyAnalytics /></ProtectedRoute>} />
-        <Route path="/company/edit-profile" element={<ProtectedRoute><EditCompanyProfile /></ProtectedRoute>} />
-        <Route path="/company/interviews" element={<ProtectedRoute><CompanyInterviews /></ProtectedRoute>} />
-        <Route path="/company/internships" element={<ProtectedRoute><CompanyInternships /></ProtectedRoute>} />
-        <Route path="/company/internships/create" element={<ProtectedRoute><CreateInternship /></ProtectedRoute>} />
-        <Route path="/company/internships/:id" element={<ProtectedRoute><CompanyInternshipView /></ProtectedRoute>} />
-        <Route path="/company/internships/:id/edit" element={<ProtectedRoute><CreateInternship /></ProtectedRoute>} />
+            {/* Protected User Routes */}
+            <Route path="/profile" element={
+              <ProtectedRoute><ProfilePage /></ProtectedRoute>
+            } />
+            <Route path="/my-profile" element={
+              <ProtectedRoute><MyProfile /></ProtectedRoute>
+            } />
+            <Route path="/profile-form" element={
+              <ProtectedRoute><ProfileForm /></ProtectedRoute>
+            } />
+            <Route path="/dashboard" element={
+              <ProtectedRoute><Dashboard /></ProtectedRoute>
+            } />
+            <Route path="/settings" element={
+              <ProtectedRoute><Settings /></ProtectedRoute>
+            } />
+            <Route path="/apply/:internshipId" element={
+              <ProtectedRoute><ApplyPage /></ProtectedRoute>
+            } />
 
-        {/* Placeholder company routes */}
-        <Route path="/company/internships/manage" element={<ProtectedRoute><div style={{ padding: '2rem' }}>Manage Internships</div></ProtectedRoute>} />
-        <Route path="/company/interviews/schedule" element={<ProtectedRoute><div style={{ padding: '2rem' }}>Schedule Interview</div></ProtectedRoute>} />
-        <Route path="/company/messages" element={<ProtectedRoute><div style={{ padding: '2rem' }}>Messages</div></ProtectedRoute>} />
-        <Route path="/company/candidates" element={<ProtectedRoute><div style={{ padding: '2rem' }}>Candidates</div></ProtectedRoute>} />
-        <Route path="/company/team" element={<ProtectedRoute><div style={{ padding: '2rem' }}>Team Management</div></ProtectedRoute>} />
-        <Route path="/company/billing" element={<ProtectedRoute><div style={{ padding: '2rem' }}>Billing</div></ProtectedRoute>} />
-      </Routes>
+            {/* Admin Routes */}
+            <Route path="/admin/dashboard" element={
+              <ProtectedRoute><AdminDashboard /></ProtectedRoute>
+            } />
+            <Route path="/admin/companies/:companyId" element={
+              <ProtectedRoute><CompanyDetails /></ProtectedRoute>
+            } />
 
-      {/* Chatbot — only on user routes when authenticated */}
-      {isAuthenticated && !isAdminRoute && !isCompanyRoute && (
-        <ChatbotWidget />
-      )}
+            {/* Company Routes */}
+            <Route path="/company/dashboard" element={
+              <ProtectedRoute><CompanyDashboard /></ProtectedRoute>
+            } />
+            <Route path="/company/applications" element={
+              <ProtectedRoute><CompanyApplications /></ProtectedRoute>
+            } />
+            <Route path="/company/analytics" element={
+              <ProtectedRoute><CompanyAnalytics /></ProtectedRoute>
+            } />
+            <Route path="/company/edit-profile" element={
+              <ProtectedRoute><EditCompanyProfile /></ProtectedRoute>
+            } />
+            <Route path="/company/interviews" element={
+              <ProtectedRoute><CompanyInterviews /></ProtectedRoute>
+            } />
+            <Route path="/company/internships" element={
+              <ProtectedRoute><CompanyInternships /></ProtectedRoute>
+            } />
+            <Route path="/company/internships/create" element={
+              <ProtectedRoute><CreateInternship /></ProtectedRoute>
+            } />
+            <Route path="/company/internships/:id" element={
+              <ProtectedRoute><CompanyInternshipView /></ProtectedRoute>
+            } />
+            <Route path="/company/internships/:id/edit" element={
+              <ProtectedRoute><CreateInternship /></ProtectedRoute>
+            } />
 
-      <Footer />
-    </div>
+            {/* Placeholder Routes */}
+            <Route path="/company/internships/manage" element={
+              <ProtectedRoute><div style={{ padding: '2rem' }}>Manage Internships</div></ProtectedRoute>
+            } />
+            <Route path="/company/interviews/schedule" element={
+              <ProtectedRoute><div style={{ padding: '2rem' }}>Schedule Interview</div></ProtectedRoute>
+            } />
+            <Route path="/company/messages" element={
+              <ProtectedRoute><div style={{ padding: '2rem' }}>Messages</div></ProtectedRoute>
+            } />
+            <Route path="/company/candidates" element={
+              <ProtectedRoute><div style={{ padding: '2rem' }}>Candidates</div></ProtectedRoute>
+            } />
+            <Route path="/company/team" element={
+              <ProtectedRoute><div style={{ padding: '2rem' }}>Team Management</div></ProtectedRoute>
+            } />
+            <Route path="/company/billing" element={
+              <ProtectedRoute><div style={{ padding: '2rem' }}>Billing</div></ProtectedRoute>
+            } />
+          </Routes>
+        </div>
+
+        {/* Footer */}
+        <Footer />
+
+        {/* Chatbot (ONLY ONCE) */}
+        {isAuthenticated && !isAdminRoute && !isCompanyRoute && (
+          <ChatbotWidget />
+        )}
+
+      </div>
+    </ThemeProvider>
   );
 }
 

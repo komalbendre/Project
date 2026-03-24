@@ -5,7 +5,7 @@ const chatSessionSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
     required: true,
-    unique: true   // One session per user
+    index: true  // Add index for faster queries
   },
 
   currentState: {
