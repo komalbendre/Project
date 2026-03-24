@@ -9,7 +9,9 @@ const Footer = () => {
         
         {/* Left Section */}
         <div style={styles.section}>
-          <h3 style={styles.logo}>SOLO Network</h3>
+          <h3 style={{ ...styles.logo, color: "#38bdf8" }}>
+            Career Sync
+          </h3>
           <p style={styles.text}>
             Empowering students and professionals with opportunities,
             internships, live projects, and career pathways.
@@ -20,9 +22,9 @@ const Footer = () => {
         <div style={styles.section}>
           <h4 style={styles.heading}>Quick Links</h4>
           <ul style={styles.list}>
+            <li><a href="/" style={styles.link}>Home</a></li>
             <li><a href="/dashboard" style={styles.link}>Dashboard</a></li>
-            <li><a href="/jobs" style={styles.link}>Jobs</a></li>
-            <li><a href="/courses" style={styles.link}>Courses</a></li>
+             <li><a href="/resume" style={styles.link}>Resume Builder</a></li>
             <li><a href="/career-paths" style={styles.link}>Career Paths</a></li>
           </ul>
         </div>
@@ -30,7 +32,7 @@ const Footer = () => {
         {/* Right Section */}
         <div style={styles.section}>
           <h4 style={styles.heading}>Contact</h4>
-          <p style={styles.text}>support@solonetwork.com</p>
+          <p style={styles.text}>support@careersync.com</p>
           <div style={styles.socialContainer}>
             <a href="#" style={styles.social}>LinkedIn</a>
             <a href="#" style={styles.social}>Twitter</a>
@@ -40,7 +42,7 @@ const Footer = () => {
       </div>
 
       <div style={styles.bottom}>
-        © {year} SOLO Network. All rights reserved.
+        © {year} Career Sync. All rights reserved.
       </div>
     </footer>
   );
@@ -67,6 +69,8 @@ const styles = {
   },
   logo: {
     marginBottom: "10px",
+    fontSize: "20px",
+    fontWeight: "bold",
   },
   heading: {
     marginBottom: "10px",

@@ -511,13 +511,6 @@ const Home = () => {
         </p>
       </section>
 
-      {/* Footer section */}
-      <footer style={styles.footer}>
-        <p>© {new Date().getFullYear()} CareerSync. All rights reserved.</p>
-        <p style={{ marginTop: "0.5rem" }}>
-          Built with ❤️ to help you achieve your career dreams
-        </p>
-      </footer>
     </div>
   );
 };
